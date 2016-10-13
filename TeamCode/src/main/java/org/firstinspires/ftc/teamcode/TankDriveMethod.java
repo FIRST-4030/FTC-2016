@@ -53,11 +53,10 @@ import com.qualcomm.robotcore.util.Range;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Template: Iterative OpMode", group = "Iterative Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Tank Drive Mode", group = "Iterative Opmode")
 // @Autonomous(...) is the other common choice
-@Disabled
 
-public class TankOpMode extends OpMode {
+public class TankDriveMethod extends OpMode {
     /* Declare OpMode members. */
     private ElapsedTime runtime = new ElapsedTime();
     protected DcMotor frontLeftMotor;
@@ -66,29 +65,16 @@ public class TankOpMode extends OpMode {
     protected DcMotor backRightMotor;
     protected boolean hasTwoMotors;
 
-
-    public TankOpMode(DcMotor lMotorName, DcMotor rMotorName) {
-
-        frontLeftMotor = lMotorName;
-        frontRightMotor = rMotorName;
-        hasTwoMotors = true;
-
-    }
-
-    public TankOpMode(DcMotor fLMotor, DcMotor fRMotor, DcMotor bLMotor, DcMotor bRMotor) {
-
-        frontLeftMotor = fLMotor;
-        frontRightMotor = fRMotor;
-        backLeftMotor = bLMotor;
-        backRightMotor = bRMotor;
-        hasTwoMotors = false;
-    }
-
     /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
+        frontLeftMotor = hardwareMap.dcMotor.get("motor-front-left");
+        frontRightMotor = hardwareMap.dcMotor.get("motor-front-right");
+        backLeftMotor = hardwareMap.dcMotor.get("motor-back-left");
+        backRightMotor = hardwareMap.dcMotor.get("motor-back-right");
+
         telemetry.addData("Status", "Initialized");
         frontRightMotor.setDirection(DcMotor.Direction.REVERSE);
         if (!hasTwoMotors) {
