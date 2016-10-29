@@ -65,11 +65,6 @@ public class TankDriveMethod extends OpMode {
     protected DcMotor backRightMotor;
     protected boolean hasTwoMotors;
 
-    public TankOpMode() {
-        //placeholder so subclasses can call other constructors
-    }
-        frontLeftMotor = hardwareMap.dcMotor.get(lMotorName);
-        frontRightMotor = hardwareMap.dcMotor.get(rMotorName);
     /*
      * Code to run ONCE when the driver hits INIT
      */

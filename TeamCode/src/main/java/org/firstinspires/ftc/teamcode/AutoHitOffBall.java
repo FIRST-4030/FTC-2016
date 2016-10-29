@@ -7,18 +7,16 @@ import com.qualcomm.robotcore.hardware.DcMotor;
  * Created by robotics on 10/28/2016.
  */
 
-public class AutoHitOffBall extends LinearOpMode {
+public class AutoHitOffBall extends FourWheelAutoMethods {
 
     public static final int GOAL_POSITION = 100;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        //get motors
-        DcMotor leftMotor;
-        while(leftMotor.getCurrentPosition() < GOAL_POSITION) {
-            leftMotor.setPower(1.0);
+        initMotors("front left", "back left", "front right", "back right");
+        while(frontLeftMotor.getCurrentPosition() < GOAL_POSITION) {
+            runMotors(1.0, 1.0);
         }
-        leftMotor.setPower(0);
-
+        stopMotors();
     }
 }
