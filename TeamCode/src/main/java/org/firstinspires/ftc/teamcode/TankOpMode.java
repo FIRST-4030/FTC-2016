@@ -53,11 +53,11 @@ import com.qualcomm.robotcore.util.Range;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Template: Iterative OpMode", group = "Iterative Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "This is abstract. Go away.", group = "Iterative Opmode")
 // @Autonomous(...) is the other common choice
 @Disabled
 
-public class TankOpMode extends OpMode {
+public abstract class TankOpMode extends OpMode {
     /* Declare OpMode members. */
     private ElapsedTime runtime = new ElapsedTime();
     protected DcMotor frontLeftMotor;
@@ -66,21 +66,25 @@ public class TankOpMode extends OpMode {
     protected DcMotor backRightMotor;
     protected boolean hasTwoMotors;
 
+    public TankOpMode() {
+        //placeholder so subclasses can call other constructors
+    }
 
-    public TankOpMode(DcMotor lMotorName, DcMotor rMotorName) {
 
-        frontLeftMotor = lMotorName;
-        frontRightMotor = rMotorName;
+    protected TankOpMode(String lMotorName, String rMotorName) {
+
+        frontLeftMotor = hardwareMap.dcMotor.get(lMotorName);
+        frontRightMotor = hardwareMap.dcMotor.get(rMotorName);
         hasTwoMotors = true;
 
     }
 
-    public TankOpMode(DcMotor fLMotor, DcMotor fRMotor, DcMotor bLMotor, DcMotor bRMotor) {
+    protected TankOpMode(String fLMotorName, String fRMotorName, String bLMotorName, String bRMotorName) {
 
-        frontLeftMotor = fLMotor;
-        frontRightMotor = fRMotor;
-        backLeftMotor = bLMotor;
-        backRightMotor = bRMotor;
+        frontLeftMotor = hardwareMap.dcMotor.get(fLMotorName);
+        frontRightMotor = hardwareMap.dcMotor.get(fRMotorName);
+        backLeftMotor = hardwareMap.dcMotor.get(bLMotorName);
+        backRightMotor = hardwareMap.dcMotor.get(bRMotorName);
         hasTwoMotors = false;
     }
 
@@ -111,41 +115,45 @@ public class TankOpMode extends OpMode {
     /*
      * Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
      */
-        @Override
-        public void init_loop() {
-        }
+    @Override
+    public void init_loop() {
+    }
 
     /*
      * Code to run ONCE when the driver hits PLAY
      */
-        @Override
-        public void start() {
-            runtime.reset();
-        }
+    @Override
+    public void start() {
+        runtime.reset();
+    }
 
     /*
      * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
      */
-        @Override
-        public void loop () {
-            telemetry.addData("Status", "Running: " + runtime.toString());
-            CollectTelemetry();
+    @Override
+    public void loop () {
+        telemetry.addData("Status", "Running: " + runtime.toString());
+        CollectTelemetry();
 
-            float left = gamepad1.left_stick_y;
-            float right = gamepad1.right_stick_y;
-            right = moderateMotorPower(Range.clip(right, -1f, 1f));
-            left = moderateMotorPower(Range.clip(left, -1f, 1f));
-            frontRightMotor.setPower(right);
-            frontLeftMotor.setPower(left);
-            if (!hasTwoMotors) {
-                backRightMotor.setPower(right);
-                backLeftMotor.setPower(left);
+        float left = gamepad1.left_stick_y;
+        float right = gamepad1.right_stick_y;
+        setMotors(left, right);
+    }
 
-                // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
-                // leftMotor.setPower(-gamepad1.left_stick_y);
-                // rightMotor.setPower(-gamepad1.right_stick_y);
-            }
+    public void setMotors(float left, float right) {
+        right = moderateMotorPower(Range.clip(right, -1f, 1f));
+        left = moderateMotorPower(Range.clip(left, -1f, 1f));
+        frontRightMotor.setPower(right);
+        frontLeftMotor.setPower(left);
+        if (!hasTwoMotors) {
+            backRightMotor.setPower(right);
+            backLeftMotor.setPower(left);
+
+            // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
+            // leftMotor.setPower(-gamepad1.left_stick_y);
+            // rightMotor.setPower(-gamepad1.right_stick_y);
         }
+    }
 
     public float moderateMotorPower(float motorPower) {
 
@@ -153,7 +161,8 @@ public class TankOpMode extends OpMode {
 
             return 0;
         } else {
-            return motorPower;
+            //Negative adjusts for joysticks being negative when pushed forward
+            return -motorPower;
         }
     }
 
@@ -167,6 +176,7 @@ public class TankOpMode extends OpMode {
      */
     @Override
     public void stop() {
+        setMotors(0, 0);
     }
 
 }

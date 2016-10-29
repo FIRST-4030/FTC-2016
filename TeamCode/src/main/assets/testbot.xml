@@ -1,4 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 
-</PreferenceScreen>
+<Robot>
+
+    <MotorController name="drive_motor" serialNumber="AL00YCQM">
+
+        <Motor name="left_drive" port="1" />
+
+        <Motor name="right_drive" port="2" />
+
+    </MotorController>
+
+</Robot>
