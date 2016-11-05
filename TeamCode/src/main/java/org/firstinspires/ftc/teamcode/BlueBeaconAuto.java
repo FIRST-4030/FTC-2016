@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -7,8 +8,11 @@ import com.qualcomm.robotcore.hardware.LightSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.UltrasonicSensor;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
 import java.util.Timer;
 
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Blue Beacon Auto", group = "AutoMode")
 public class BlueBeaconAuto extends FourWheelAutoMethods {
 
     Servo leftBooper;
@@ -16,7 +20,7 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
     ColorSensor frontColor;
     ColorSensor backColor;
     LightSensor light;
-    UltrasonicSensor distance;
+    ModernRoboticsI2cRangeSensor distance;
     Timer timer;
 
     //Not sure if these are needed
@@ -41,17 +45,19 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
 
 
     public void initConditions() {
-        leftBooper.setPosition(BOOPER_UP);
-        rightBooper.setPosition(BOOPER_UP);
-        initMotors("front left", "back left", "front right", "back right");
+        //leftBooper.setPosition(BOOPER_UP);
+        //rightBooper.setPosition(BOOPER_UP);
+        //initMotors("front left", "back left", "front right", "back right");
         frontColor = hardwareMap.colorSensor.get("color sensor1");
         backColor = hardwareMap.colorSensor.get("color sensor2");
-        light = hardwareMap.lightSensor.get("light");
-        distance = hardwareMap.ultrasonicSensor.get("ultrasound");
+        //light = hardwareMap.lightSensor.get("light");
+        distance = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "ultrasound");
+        distance.initialize();
         timer = new Timer();
+        distance.enableLed(false);
         frontColor.enableLed(true);
         backColor.enableLed(true);
-        light.enableLed(false);
+        //light.enableLed(false);
     }
 
     //Turn the isOn methods into a single get color method
@@ -66,20 +72,20 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
             return "blue";
         } else if(in red range) {
             return "red";
-        } else {
+        } else {*/
             return "unknown";
-        }
+        /*}
          */
     }
 
     public boolean isColorSensorOnWhite(ColorSensor sensor) {
-        boolean isOnWhite;
+        boolean isOnWhite = false;
         //do some stuff
         return isOnWhite;
     }
 
     public boolean isColorSensorOnGray(ColorSensor sensor) {
-        boolean isOnGray;
+        boolean isOnGray = false;
         //do some stuff
         return isOnGray;
     }
@@ -127,7 +133,7 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         }
 
         //Drive forward while staying straight
-        while(distance.getUltrasonicLevel() < NEAR_WALL) {
+        while(distance.cmUltrasonic() < NEAR_WALL) {
             frontOnWhite = isColorSensorOnWhite(frontColor);
             backOnWhite = isColorSensorOnWhite(backColor);
             if(frontOnWhite) {
@@ -170,11 +176,26 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
     public void runOpMode() throws InterruptedException {
         initConditions();
 
-        beaconHitRoutine();
+        // Wait for driver station start
+        waitForStart();
+
+        while(opModeIsActive()) {
+            telemetry.addData("Range", distance.getDistance(DistanceUnit.CM));
+            telemetry.addData("Range Optical", distance.rawOptical());
+            telemetry.addData("Range Ultrasonic", distance.rawUltrasonic());
+            telemetry.addData("RGB 1", "%03d %03d %03d", frontColor.red(), frontColor.green(), frontColor.blue());
+            telemetry.addData("RGB 2", "%03d %03d %03d", backColor.red(), backColor.green(), backColor.blue());
+            telemetry.addData("Alpha 1", frontColor.alpha());
+            telemetry.addData("Argb 1", frontColor.argb());
+            telemetry.update();
+            idle();
+        }
+
+        //beaconHitRoutine();
 
         //Turn and drive to next line
-        driveToTime(0.75, -0.75, TURN_TIME);
+        //driveToTime(0.75, -0.75, TURN_TIME);
 
-        beaconHitRoutine();
+        //beaconHitRoutine();
     }
 }

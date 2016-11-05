@@ -72,8 +72,8 @@ public abstract class CorrectionalMotor extends RegulatedMotor {
     public void init() {
         this.setPower(0);
         this.setTargetPosition(0);
-        this.setMode(DcMotorController.RunMode.RESET_ENCODERS);
-        this.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
+        //this.setMode(DcMotorController.RunMode.RESET_ENCODERS);
+        //this.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
     }
 
     public abstract boolean calibrate();
