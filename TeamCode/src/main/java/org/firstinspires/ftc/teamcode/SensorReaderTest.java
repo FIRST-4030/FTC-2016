@@ -4,142 +4,117 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.view.View;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cCompassSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.IrSeekerSensor;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 /**
  * Created by robotics on 10/12/2016.
  */
 
-@TeleOp(name = "Sensors: Color, Gyro, OD", group = "Sensor")
+@TeleOp(name = "Sensor Test", group = "Test")
 public class SensorReaderTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
-        ModernRoboticsI2cGyro gyro;   // Hardware Device Object
-        ColorSensor colorSensor;    // Hardware Device Object
-        OpticalDistanceSensor odsSensor;  // Hardware Device Object
-        int xVal, yVal, zVal = 0;     // Gyro rate Values
-        int heading = 0;              // Gyro integrated heading
-        int angleZ = 0;
-        boolean lastResetState = false;
-        boolean curResetState  = false;
 
-        // get a reference to a Modern Robotics GyroSensor object.
-        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
+        // Emulate a toggle button for the color sensor LED
+        boolean ledButtonState = false;
+        boolean ledButtonStateLast = false;
 
-        // start calibrating the gyro.
-        telemetry.addData(">", "Gyro Calibrating. Do Not move!");
-        telemetry.update();
+        // Init the color sensor
+        boolean ledOn = true;
+        ColorSensor color = hardwareMap.colorSensor.get("color sensor");
+        color.enableLed(ledOn);
+
+        // Init the reflected light sensor
+        OpticalDistanceSensor ods = hardwareMap.opticalDistanceSensor.get("ods");
+
+        // Init gyro
+        ModernRoboticsI2cGyro gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
+        gyro.resetDeviceConfigurationForOpMode();
         gyro.calibrate();
-
-        // make sure the gyro is calibrated.
         while (gyro.isCalibrating())  {
+            telemetry.addData("Gyro", "Calibrating. DO NOT MOVE!");
+            telemetry.addData("Status", gyro.status());
+            telemetry.addData("Time", System.currentTimeMillis());
+            telemetry.update();
             Thread.sleep(50);
             idle();
         }
-
-        telemetry.addData(">", "Gyro Calibrated.  Press Start.");
+        telemetry.addData("Gyro", "Calibrated. Press start.");
         telemetry.update();
 
-        // hsvValues is an array that will hold the hue, saturation, and value information.
-        float hsvValues[] = {0F,0F,0F};
+        // Init range
+        ModernRoboticsI2cRangeSensor range = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "range");
+        range.initialize();
+        range.enableLed(ledOn);
 
-        // values is a reference to the hsvValues array.
-        final float values[] = hsvValues;
+        // Init compass
+        ModernRoboticsI2cCompassSensor compass = (ModernRoboticsI2cCompassSensor)hardwareMap.compassSensor.get("compass");
+        compass.initialize();
 
-        // get a reference to the RelativeLayout so we can change the background
-        // color of the Robot Controller app to match the hue detected by the RGB sensor.
-        final View relativeLayout = ((Activity) hardwareMap.appContext).findViewById(com.qualcomm.ftcrobotcontroller.R.id.RelativeLayout);
+        // Init IR
+        IrSeekerSensor ir = hardwareMap.irSeekerSensor.get("ir");
 
-        // bPrevState and bCurrState represent the previous and current state of the button.
-        boolean bPrevState = false;
-        boolean bCurrState = false;
-
-        // bLedOn represents the state of the LED.
-        boolean bLedOn = true;
-
-        // get a reference to our ColorSensor object.
-        colorSensor = hardwareMap.colorSensor.get("color sensor");
-
-        // Set the LED in the beginning
-        colorSensor.enableLed(bLedOn);
-
-        // get a reference to our Light Sensor object.
-        odsSensor = hardwareMap.opticalDistanceSensor.get("ods");
-
-        // wait for the start button to be pressed.
+        // Wait for driver station start
         waitForStart();
+        telemetry.clear();
 
         while (opModeIsActive())  {
 
-            // if the A and B buttons are pressed just now, reset Z heading.
-            curResetState = (gamepad1.a && gamepad1.b);
-            if(curResetState && !lastResetState)  {
+            // Reset the gyro heading when A is pressed
+            if(gamepad1.a || gamepad2.a)  {
                 gyro.resetZAxisIntegrator();
             }
-            lastResetState = curResetState;
 
-            // get the x, y, and z values (rate of change of angle).
-            xVal = gyro.rawX();
-            yVal = gyro.rawY();
-            zVal = gyro.rawZ();
-
-            // get the heading info.
-            // the Modern Robotics' gyro sensor keeps
-            // track of the current heading for the Z axis only.
-            heading = gyro.getHeading();
-            angleZ  = gyro.getIntegratedZValue();
-
-            telemetry.addData(">", "Press A & B to reset Heading.");
-            telemetry.addData("0", "Heading %03d", heading);
-            telemetry.addData("1", "Int. Ang. %03d", angleZ);
-            telemetry.addData("2", "X av. %03d", xVal);
-            telemetry.addData("3", "Y av. %03d", yVal);
-            telemetry.addData("4", "Z av. %03d", zVal);
-            // check the status of the x button on either gamepad.
-            bCurrState = gamepad1.x;
-
-            // check for button state transitions.
-            if ((bCurrState == true) && (bCurrState != bPrevState))  {
-
-                // button is transitioning to a pressed state. So Toggle LED
-                bLedOn = !bLedOn;
-                colorSensor.enableLed(bLedOn);
+            // Toggle the color sensor LED when X is pressed
+            ledButtonState = ledButtonStateLast;
+            ledButtonStateLast = gamepad1.x | gamepad2.x;
+            if ((ledButtonStateLast == true) && (ledButtonStateLast != ledButtonState))  {
+                ledOn = !ledOn;
+                color.enableLed(ledOn);
+                range.enableLed(ledOn);
             }
 
-            // update previous state variable.
-            bPrevState = bCurrState;
+            // Read gyro
+            telemetry.addData("Heading", "%03d (Press A to reset)", gyro.getHeading());
+            telemetry.addData("Gyro XYZ", "%03d %03d %03d", gyro.rawX(), gyro.rawY(), gyro.rawZ());
 
-            // convert the RGB values to HSV values.
-            Color.RGBToHSV(colorSensor.red() * 8, colorSensor.green() * 8, colorSensor.blue() * 8, hsvValues);
+            // Read color sensor
+            telemetry.addData("LED", (ledOn ? "On" : "Off") + " (Press X to toggle)");
+            telemetry.addData("RGB", "%03d %03d %03d", color.red(), color.green(), color.blue());
 
-            // send the info back to driver station using telemetry function.
-            telemetry.addData("LED", bLedOn ? "On" : "Off");
-            telemetry.addData("Clear", colorSensor.alpha());
-            telemetry.addData("Red  ", colorSensor.red());
-            telemetry.addData("Green", colorSensor.green());
-            telemetry.addData("Blue ", colorSensor.blue());
-            telemetry.addData("Hue", hsvValues[0]);
+            // Read reflected light sensor
+            telemetry.addData("Reflected", ods.getLightDetected());
+            telemetry.addData("Reflected Raw", ods.getRawLightDetected());
 
-            // change the background color to match the color detected by the RGB sensor.
-            // pass a reference to the hue, saturation, and value array as an argument
-            // to the HSVToColor method.
-            relativeLayout.post(new Runnable() {
-                public void run() {
-                    relativeLayout.setBackgroundColor(Color.HSVToColor(0xff, values));
-                }
-            });
+            // Read range
+            telemetry.addData("Range", range.getDistance(DistanceUnit.CM));
+            telemetry.addData("Range Optical", range.rawOptical());
+            telemetry.addData("Range Ultrasonic", range.rawUltrasonic());
 
-            // send the info back to driver station using telemetry function.
-            telemetry.addData("Raw",    odsSensor.getRawLightDetected());
-            telemetry.addData("Normal", odsSensor.getLightDetected());
+            // Read compass
+            telemetry.addData("Compass", "%03d", compass.getDirection());
+            telemetry.addData("Acceleration XYZ", "%03d %03d %03d", compass.getAcceleration().xAccel, compass.getAcceleration().yAccel,compass.getAcceleration().zAccel);
 
+            // Read IR
+            telemetry.addData("IR", ir.signalDetected() ? "Present" : "Absent");
+            telemetry.addData("IR Strength", ir.getStrength());
+            telemetry.addData("IR Angle", "%03d", ir.getAngle());
+
+            // Push the driver station update
             telemetry.update();
-            idle(); // Always call idle() at the bottom of your while(opModeIsActive()) loop
+
+            // Always idle() between loops
+            idle();
         }
     }
 }

@@ -97,41 +97,45 @@ public class TankDriveMethod extends OpMode {
     /*
      * Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
      */
-        @Override
-        public void init_loop() {
-        }
+    @Override
+    public void init_loop() {
+    }
 
     /*
      * Code to run ONCE when the driver hits PLAY
      */
-        @Override
-        public void start() {
-            runtime.reset();
-        }
+    @Override
+    public void start() {
+        runtime.reset();
+    }
 
     /*
      * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
      */
-        @Override
-        public void loop () {
-            telemetry.addData("Status", "Running: " + runtime.toString());
-            CollectTelemetry();
+    @Override
+    public void loop () {
+        telemetry.addData("Status", "Running: " + runtime.toString());
+        CollectTelemetry();
 
-            float left = gamepad1.left_stick_y;
-            float right = gamepad1.right_stick_y;
-            right = moderateMotorPower(Range.clip(right, -1f, 1f));
-            left = moderateMotorPower(Range.clip(left, -1f, 1f));
-            frontRightMotor.setPower(right);
-            frontLeftMotor.setPower(left);
-            if (!hasTwoMotors) {
-                backRightMotor.setPower(right);
-                backLeftMotor.setPower(left);
+        float left = gamepad1.left_stick_y;
+        float right = gamepad1.right_stick_y;
+        setMotors(left, right);
+    }
 
-                // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
-                // leftMotor.setPower(-gamepad1.left_stick_y);
-                // rightMotor.setPower(-gamepad1.right_stick_y);
-            }
+    public void setMotors(float left, float right) {
+        right = moderateMotorPower(Range.clip(right, -1f, 1f));
+        left = moderateMotorPower(Range.clip(left, -1f, 1f));
+        frontRightMotor.setPower(right);
+        frontLeftMotor.setPower(left);
+        if (!hasTwoMotors) {
+            backRightMotor.setPower(right);
+            backLeftMotor.setPower(left);
+
+            // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
+            // leftMotor.setPower(-gamepad1.left_stick_y);
+            // rightMotor.setPower(-gamepad1.right_stick_y);
         }
+    }
 
     public float moderateMotorPower(float motorPower) {
 
@@ -139,7 +143,8 @@ public class TankDriveMethod extends OpMode {
 
             return 0;
         } else {
-            return motorPower;
+            //Negative adjusts for joysticks being negative when pushed forward
+            return -motorPower;
         }
     }
 
@@ -153,6 +158,7 @@ public class TankDriveMethod extends OpMode {
      */
     @Override
     public void stop() {
+        setMotors(0, 0);
     }
 
 }
