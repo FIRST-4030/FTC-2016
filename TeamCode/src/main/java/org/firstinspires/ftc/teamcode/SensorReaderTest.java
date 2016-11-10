@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.IrSeekerSensor;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 
@@ -29,86 +30,154 @@ public class SensorReaderTest extends LinearOpMode {
         boolean ledButtonState = false;
         boolean ledButtonStateLast = false;
 
-        // Init the color sensor
+        // Toggles for installed sensors
+        boolean enableColor = true;
+        boolean enableColor2 = true;
+        boolean enableODS = false;
+        boolean enableGyro = false;
+        boolean enableRange = false;
+        boolean enableCompass = false;
+        boolean enableIR = false;
+
+        // LED state tracking
         boolean ledOn = true;
-        ColorSensor color = hardwareMap.colorSensor.get("color sensor");
-        color.enableLed(ledOn);
+
+        // Init the color sensors
+        ColorSensor color = null;
+        ColorSensor color2 = null;
+        if (enableColor) {
+            color = hardwareMap.colorSensor.get("color");
+            color.enableLed(ledOn);
+        }
+        if (enableColor2) {
+            color2 = hardwareMap.colorSensor.get("color2");
+            color.setI2cAddress(I2cAddr.create7bit(0x1c));
+            color2.enableLed(ledOn);
+        }
 
         // Init the reflected light sensor
-        OpticalDistanceSensor ods = hardwareMap.opticalDistanceSensor.get("ods");
+        OpticalDistanceSensor ods = null;
+        if (enableODS) {
+            ods = hardwareMap.opticalDistanceSensor.get("ods");
+        }
 
         // Init gyro
-        ModernRoboticsI2cGyro gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
-        gyro.resetDeviceConfigurationForOpMode();
-        gyro.calibrate();
-        while (gyro.isCalibrating())  {
-            telemetry.addData("Gyro", "Calibrating. DO NOT MOVE!");
-            telemetry.addData("Status", gyro.status());
-            telemetry.addData("Time", System.currentTimeMillis());
+        ModernRoboticsI2cGyro gyro = null;
+        if (enableGyro) {
+            gyro = (ModernRoboticsI2cGyro) hardwareMap.gyroSensor.get("gyro");
+            gyro.resetDeviceConfigurationForOpMode();
+            gyro.calibrate();
+            while (gyro.isCalibrating()) {
+                telemetry.addData("Gyro", "Calibrating. DO NOT MOVE!");
+                telemetry.addData("Status", gyro.status());
+                telemetry.addData("Time", System.currentTimeMillis());
+                telemetry.update();
+                Thread.sleep(50);
+                idle();
+            }
+            telemetry.addData("Gyro", "Calibrated. Press start.");
             telemetry.update();
-            Thread.sleep(50);
-            idle();
         }
-        telemetry.addData("Gyro", "Calibrated. Press start.");
-        telemetry.update();
 
         // Init range
-        ModernRoboticsI2cRangeSensor range = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "range");
-        range.initialize();
-        range.enableLed(ledOn);
+        ModernRoboticsI2cRangeSensor range = null;
+        if (enableRange) {
+            range = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "range");
+            range.initialize();
+            range.enableLed(ledOn);
+        }
 
         // Init compass
-        ModernRoboticsI2cCompassSensor compass = (ModernRoboticsI2cCompassSensor)hardwareMap.compassSensor.get("compass");
-        compass.initialize();
+        ModernRoboticsI2cCompassSensor compass = null;
+        if (enableCompass) {
+            compass = (ModernRoboticsI2cCompassSensor) hardwareMap.compassSensor.get("compass");
+            compass.initialize();
+        }
 
         // Init IR
-        IrSeekerSensor ir = hardwareMap.irSeekerSensor.get("ir");
+        IrSeekerSensor ir = null;
+        if (enableIR) {
+            ir = hardwareMap.irSeekerSensor.get("ir");
+        }
 
         // Wait for driver station start
         waitForStart();
         telemetry.clear();
 
-        while (opModeIsActive())  {
+        long timeLast = System.currentTimeMillis();
+
+        while (opModeIsActive()) {
 
             // Reset the gyro heading when A is pressed
-            if(gamepad1.a || gamepad2.a)  {
-                gyro.resetZAxisIntegrator();
+            if (gamepad1.a || gamepad2.a) {
+                if (enableGyro) {
+                    gyro.resetZAxisIntegrator();
+                }
             }
 
             // Toggle the color sensor LED when X is pressed
             ledButtonState = ledButtonStateLast;
             ledButtonStateLast = gamepad1.x | gamepad2.x;
-            if ((ledButtonStateLast == true) && (ledButtonStateLast != ledButtonState))  {
+            if ((ledButtonStateLast == true) && (ledButtonStateLast != ledButtonState)) {
                 ledOn = !ledOn;
-                color.enableLed(ledOn);
-                range.enableLed(ledOn);
+                if (enableColor) {
+                    color.enableLed(ledOn);
+                }
+                if (enableColor2) {
+                    color2.enableLed(ledOn);
+                }
+                if (enableRange) {
+                    range.enableLed(ledOn);
+                }
+            }
+
+            // Toggle the color sensor LED on a timer
+            if (System.currentTimeMillis() > timeLast + 10000) {
+                ledOn = !ledOn;
+                timeLast = System.currentTimeMillis();
             }
 
             // Read gyro
-            telemetry.addData("Heading", "%03d (Press A to reset)", gyro.getHeading());
-            telemetry.addData("Gyro XYZ", "%03d %03d %03d", gyro.rawX(), gyro.rawY(), gyro.rawZ());
+            if (enableGyro) {
+                telemetry.addData("Heading", "%03d (Press A to reset)", gyro.getHeading());
+                telemetry.addData("Gyro XYZ", "%03d %03d %03d", gyro.rawX(), gyro.rawY(), gyro.rawZ());
+            }
 
-            // Read color sensor
-            telemetry.addData("LED", (ledOn ? "On" : "Off") + " (Press X to toggle)");
-            telemetry.addData("RGB", "%03d %03d %03d", color.red(), color.green(), color.blue());
+            // Read color sensors
+            if (enableColor) {
+                telemetry.addData("LED", (ledOn ? "On" : "Off") + " (Press X to toggle)");
+                telemetry.addData("RGB", "%03d %03d %03d", color.red(), color.green(), color.blue());
+            }
+            if (enableColor2) {
+                telemetry.addData("LED2", (ledOn ? "On" : "Off") + " (Press X to toggle)");
+                telemetry.addData("RGB2", "%03d %03d %03d", color2.red(), color2.green(), color2.blue());
+            }
 
             // Read reflected light sensor
-            telemetry.addData("Reflected", ods.getLightDetected());
-            telemetry.addData("Reflected Raw", ods.getRawLightDetected());
+            if (enableODS) {
+                telemetry.addData("Reflected", ods.getLightDetected());
+                telemetry.addData("Reflected Raw", ods.getRawLightDetected());
+            }
 
             // Read range
-            telemetry.addData("Range", range.getDistance(DistanceUnit.CM));
-            telemetry.addData("Range Optical", range.rawOptical());
-            telemetry.addData("Range Ultrasonic", range.rawUltrasonic());
+            if (enableRange) {
+                telemetry.addData("Range", range.getDistance(DistanceUnit.CM));
+                telemetry.addData("Range Optical", range.rawOptical());
+                telemetry.addData("Range Ultrasonic", range.rawUltrasonic());
+            }
 
             // Read compass
-            telemetry.addData("Compass", "%03d", compass.getDirection());
-            telemetry.addData("Acceleration XYZ", "%03d %03d %03d", compass.getAcceleration().xAccel, compass.getAcceleration().yAccel,compass.getAcceleration().zAccel);
+            if (enableCompass) {
+                telemetry.addData("Compass", "%03d", compass.getDirection());
+                telemetry.addData("Acceleration XYZ", "%03d %03d %03d", compass.getAcceleration().xAccel, compass.getAcceleration().yAccel, compass.getAcceleration().zAccel);
+            }
 
             // Read IR
-            telemetry.addData("IR", ir.signalDetected() ? "Present" : "Absent");
-            telemetry.addData("IR Strength", ir.getStrength());
-            telemetry.addData("IR Angle", "%03d", ir.getAngle());
+            if (enableIR) {
+                telemetry.addData("IR", ir.signalDetected() ? "Present" : "Absent");
+                telemetry.addData("IR Strength", ir.getStrength());
+                telemetry.addData("IR Angle", "%03d", ir.getAngle());
+            }
 
             // Push the driver station update
             telemetry.update();

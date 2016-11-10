@@ -1,4 +1,4 @@
-package org.ingrahamrobotics.classes;
+package org.firstinspires.ftc.teamcode.classes;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -9,31 +9,41 @@ import com.qualcomm.robotcore.util.Range;
  */
 public abstract class TankOpMode extends OpMode {
 
+    protected String frontLeftMotorName;
+    protected String frontRightMotorName;
+    protected String backLeftMotorName;
+    protected String backRightMotorName;
     protected DcMotor frontLeftMotor;
     protected DcMotor frontRightMotor;
     protected DcMotor backLeftMotor;
     protected DcMotor backRightMotor;
     protected boolean hasTwoMotors;
 
-    public TankOpMode (DcMotor lMotorName, DcMotor rMotorName){
+    public TankOpMode (String lMotorName, String rMotorName){
 
-        frontLeftMotor = lMotorName;
-        frontRightMotor = rMotorName;
+        frontLeftMotorName = lMotorName;
+        frontRightMotorName = rMotorName;
         hasTwoMotors = true;
 
     }
 
-    public TankOpMode (DcMotor fLMotor, DcMotor fRMotor, DcMotor bLMotor, DcMotor bRMotor){
+    public TankOpMode (String fLMotor, String fRMotor, String bLMotor, String bRMotor){
 
-        frontLeftMotor = fLMotor;
-        frontRightMotor = fRMotor;
-        backLeftMotor = bLMotor;
-        backRightMotor = bRMotor;
+        frontLeftMotorName = fLMotor;
+        frontRightMotorName = fRMotor;
+        backLeftMotorName = bLMotor;
+        backRightMotorName = bRMotor;
         hasTwoMotors = false;
     }
 
     @Override
     public void init() {
+        frontLeftMotor = hardwareMap.dcMotor.get(frontLeftMotorName);
+        frontRightMotor = hardwareMap.dcMotor.get(frontRightMotorName);
+        if(!hasTwoMotors) {
+            backLeftMotor = hardwareMap.dcMotor.get(backLeftMotorName);
+            backRightMotor = hardwareMap.dcMotor.get(backRightMotorName);
+        }
 
         frontRightMotor.setDirection(DcMotor.Direction.REVERSE);
         if(!hasTwoMotors){
