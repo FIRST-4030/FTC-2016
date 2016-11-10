@@ -4,6 +4,7 @@ import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.LightSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.UltrasonicSensor;
@@ -31,6 +32,8 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
     static int[] GRN_VAL_ON_GRAY;
     static int[] BLU_VAL_ON_GRAY;
 
+    public static final int WHITE_ALPHA_THRESHOLD = 15;
+
     static double BEACON_BLUE_MIN;
     static double BEACON_BLUE_MAX;
     static double BEACON_RED_MIN;
@@ -47,14 +50,15 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
     public void initConditions() {
         //leftBooper.setPosition(BOOPER_UP);
         //rightBooper.setPosition(BOOPER_UP);
-        //initMotors("front left", "back left", "front right", "back right");
+        initMotors("front left", "back left", "front right", "back right");
+        backRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         frontColor = hardwareMap.colorSensor.get("color sensor1");
         backColor = hardwareMap.colorSensor.get("color sensor2");
         //light = hardwareMap.lightSensor.get("light");
         distance = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "ultrasound");
         distance.initialize();
         timer = new Timer();
-        distance.enableLed(false);
+        distance.enableLed(true);
         frontColor.enableLed(true);
         backColor.enableLed(true);
         //light.enableLed(false);
@@ -79,15 +83,11 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
     }
 
     public boolean isColorSensorOnWhite(ColorSensor sensor) {
-        boolean isOnWhite = false;
-        //do some stuff
-        return isOnWhite;
+        return sensor.alpha() > WHITE_ALPHA_THRESHOLD;
     }
 
     public boolean isColorSensorOnGray(ColorSensor sensor) {
-        boolean isOnGray = false;
-        //do some stuff
-        return isOnGray;
+        return sensor.alpha() < WHITE_ALPHA_THRESHOLD;
     }
 
     public void turnToStraddle() {
@@ -117,7 +117,10 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         boolean frontOnWhite = isColorSensorOnWhite(frontColor);
         boolean backOnWhite = isColorSensorOnWhite(backColor);
         while(!frontOnWhite && !backOnWhite) {
-            runMotors(1.0, 1.0);
+            frontLeftMotor.setPower(1.0);
+            backLeftMotor.setPower(1.0);
+            frontRightMotor.setPower(1.0);
+            backRightMotor.setPower(1.0);
             frontOnWhite = isColorSensorOnWhite(frontColor);
             backOnWhite = isColorSensorOnWhite(backColor);
         }
@@ -131,6 +134,8 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         } else {
             pivotToStraddle();
         }
+
+        System.exit(0);
 
         //Drive forward while staying straight
         while(distance.cmUltrasonic() < NEAR_WALL) {
@@ -179,19 +184,18 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         // Wait for driver station start
         waitForStart();
 
+        /*
         while(opModeIsActive()) {
             telemetry.addData("Range", distance.getDistance(DistanceUnit.CM));
             telemetry.addData("Range Optical", distance.rawOptical());
-            telemetry.addData("Range Ultrasonic", distance.rawUltrasonic());
             telemetry.addData("RGB 1", "%03d %03d %03d", frontColor.red(), frontColor.green(), frontColor.blue());
             telemetry.addData("RGB 2", "%03d %03d %03d", backColor.red(), backColor.green(), backColor.blue());
-            telemetry.addData("Alpha 1", frontColor.alpha());
-            telemetry.addData("Argb 1", frontColor.argb());
             telemetry.update();
             idle();
         }
+        */
 
-        //beaconHitRoutine();
+        beaconHitRoutine();
 
         //Turn and drive to next line
         //driveToTime(0.75, -0.75, TURN_TIME);
