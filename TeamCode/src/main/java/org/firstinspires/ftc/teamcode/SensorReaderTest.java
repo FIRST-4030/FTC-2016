@@ -30,6 +30,11 @@ public class SensorReaderTest extends LinearOpMode {
         boolean ledButtonState = false;
         boolean ledButtonStateLast = false;
 
+        // Retry timer for LED modes
+        int LED_TIMEOUT = 100;
+        long now = System.currentTimeMillis();
+        long timeLED = now;
+
         // Toggles for installed sensors
         boolean enableColor = true;
         boolean enableColor2 = true;
@@ -51,7 +56,7 @@ public class SensorReaderTest extends LinearOpMode {
         }
         if (enableColor2) {
             color2 = hardwareMap.colorSensor.get("color2");
-            color.setI2cAddress(I2cAddr.create7bit(0x1c));
+            color2.setI2cAddress(I2cAddr.create8bit(0x1c));
             color2.enableLed(ledOn);
         }
 
@@ -104,9 +109,13 @@ public class SensorReaderTest extends LinearOpMode {
         waitForStart();
         telemetry.clear();
 
-        long timeLast = System.currentTimeMillis();
+        // Timer for LED flashing
+        long timeLast = now;
 
         while (opModeIsActive()) {
+
+            // Avoid repeated system calls
+            now = System.currentTimeMillis();
 
             // Reset the gyro heading when A is pressed
             if (gamepad1.a || gamepad2.a) {
@@ -120,6 +129,11 @@ public class SensorReaderTest extends LinearOpMode {
             ledButtonStateLast = gamepad1.x | gamepad2.x;
             if ((ledButtonStateLast == true) && (ledButtonStateLast != ledButtonState)) {
                 ledOn = !ledOn;
+            }
+
+            // Reset the LED state periodically to deal with FTC bugs
+            if (timeLED + LED_TIMEOUT < now) {
+                timeLED = now;
                 if (enableColor) {
                     color.enableLed(ledOn);
                 }
@@ -132,9 +146,9 @@ public class SensorReaderTest extends LinearOpMode {
             }
 
             // Toggle the color sensor LED on a timer
-            if (System.currentTimeMillis() > timeLast + 10000) {
+            if (timeLast + 10000 < now) {
                 ledOn = !ledOn;
-                timeLast = System.currentTimeMillis();
+                timeLast = now;
             }
 
             // Read gyro
