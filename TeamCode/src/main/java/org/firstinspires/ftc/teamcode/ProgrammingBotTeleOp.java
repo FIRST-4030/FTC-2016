@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.LightSensor;
 
 import org.firstinspires.ftc.teamcode.classes.TankOpMode;
@@ -18,7 +20,7 @@ public class ProgrammingBotTeleOp extends TankOpMode {
     LightSensor light;
 
     public ProgrammingBotTeleOp() {
-        super("front left", "back left", "front right", "back right");
+        super("front left", "front right", "back left", "back right");
     }
 
     public void init() {
@@ -30,6 +32,9 @@ public class ProgrammingBotTeleOp extends TankOpMode {
 
         color.enableLed(true);
         light.enableLed(true);
+
+        backRightMotor.setDirection(DcMotor.Direction.FORWARD);
+        backLeftMotor.setDirection(DcMotor.Direction.REVERSE);
     }
 
     public void loop() {
