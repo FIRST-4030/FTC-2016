@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import java.util.Timer;
@@ -8,7 +8,7 @@ import java.util.Timer;
 /**
  * Created by User on 10/29/2016.
  */
-public abstract class FourWheelAutoMethods extends LinearOpMode {
+public abstract class FourWheelAutoMethods extends OpMode {
 
     protected DcMotor frontLeftMotor;
     protected DcMotor backLeftMotor;
@@ -38,7 +38,7 @@ public abstract class FourWheelAutoMethods extends LinearOpMode {
         runMotors(0, 0);
     }
 
-    public void driveToTime(double left, double right, long millis) {
+    public void driveToTime(double left, double right, long millis) throws InterruptedException {
         long startTime = System.currentTimeMillis();
         while(System.currentTimeMillis() - startTime < millis) {
             runMotors(left, right);

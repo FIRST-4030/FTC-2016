@@ -14,7 +14,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.Timer;
 
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Blue Beacon Auto", group = "AutoMode")
-public class BlueBeaconAuto extends FourWheelAutoMethods {
+public abstract class BlueBeaconAuto extends FourWheelAutoMethods {
 
     Servo leftBooper;
     Servo rightBooper;
@@ -52,6 +52,7 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         //rightBooper.setPosition(BOOPER_UP);
         initMotors("front left", "back left", "front right", "back right");
         backRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         frontColor = hardwareMap.colorSensor.get("color sensor1");
         backColor = hardwareMap.colorSensor.get("color sensor2");
         //light = hardwareMap.lightSensor.get("light");
@@ -90,14 +91,15 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         return sensor.alpha() < WHITE_ALPHA_THRESHOLD;
     }
 
-    public void turnToStraddle() {
+    public void turnToStraddle() throws InterruptedException {
         while(isColorSensorOnWhite(frontColor) && isColorSensorOnWhite(backColor)) {
             runMotors(-0.5, 0.5);
+            //idle();
         }
         stopMotors();
     }
 
-    public void pivotToStraddle() {
+    public void pivotToStraddle() throws InterruptedException {
         boolean backOnLine = false;
         boolean backOverLine = false;
         while(!backOverLine) {
@@ -108,6 +110,7 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
                 backOnLine = false;
                 backOverLine = true;
             }
+            //idle();
         }
         stopMotors();
     }
@@ -117,14 +120,18 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         boolean frontOnWhite = isColorSensorOnWhite(frontColor);
         boolean backOnWhite = isColorSensorOnWhite(backColor);
         while(!frontOnWhite && !backOnWhite) {
-            frontLeftMotor.setPower(1.0);
-            backLeftMotor.setPower(1.0);
             frontRightMotor.setPower(1.0);
             backRightMotor.setPower(1.0);
+            frontLeftMotor.setPower(1.0);
+            backLeftMotor.setPower(1.0);
             frontOnWhite = isColorSensorOnWhite(frontColor);
             backOnWhite = isColorSensorOnWhite(backColor);
+            //idle();
         }
+
         stopMotors();
+
+        telemetry.update();
 
         //Turn in a way to straddle the line
         if(frontOnWhite && backOnWhite) {
@@ -138,7 +145,7 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
         System.exit(0);
 
         //Drive forward while staying straight
-        while(distance.cmUltrasonic() < NEAR_WALL) {
+        while(distance.getDistance(DistanceUnit.CM) < NEAR_WALL) {
             frontOnWhite = isColorSensorOnWhite(frontColor);
             backOnWhite = isColorSensorOnWhite(backColor);
             if(frontOnWhite) {
@@ -177,12 +184,13 @@ public class BlueBeaconAuto extends FourWheelAutoMethods {
      *
      * @throws InterruptedException
      */
-    @Override
     public void runOpMode() throws InterruptedException {
         initConditions();
 
+        //idle();
+
         // Wait for driver station start
-        waitForStart();
+        //waitForStart();
 
         /*
         while(opModeIsActive()) {
