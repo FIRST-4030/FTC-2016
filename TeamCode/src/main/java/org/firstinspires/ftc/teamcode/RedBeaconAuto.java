@@ -23,7 +23,6 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
     ColorSensor backColor;
     LightSensor light;
     ModernRoboticsI2cRangeSensor distance;
-    Timer timer;
 
     //Not sure if these are needed
     static int[] RED_VAL_ON_WHITE;
@@ -33,7 +32,7 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
     static int[] GRN_VAL_ON_GRAY;
     static int[] BLU_VAL_ON_GRAY;
 
-    public static final int WHITE_ALPHA_THRESHOLD = 15;
+    public static final int WHITE_ALPHA_THRESHOLD = 9;
 
     static double BEACON_BLUE_MIN;
     static double BEACON_BLUE_MAX;
@@ -46,7 +45,7 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
     static int BOOPER_PUSH;
 
     static long TURN_TIME;
-    public static int stateCounter = 1;
+    public int stateCounter = 1;
 
     @Override
     public void init() {
@@ -64,6 +63,7 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
         frontColor.enableLed(true);
         backColor.enableLed(true);
         //light.enableLed(false);
+        CollectTelemetry();
     }
 
     public boolean isColorSensorOnWhite(ColorSensor sensor) {
@@ -81,6 +81,10 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
 
     @Override
     public void loop() {
+        distance.enableLed(true);
+        frontColor.enableLed(true);
+        backColor.enableLed(true);
+        CollectTelemetry();
 
         switch (stateCounter) {
             case 1:
@@ -93,34 +97,43 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
                     stateCounter = 2;
                 } else if(backOnWhite && !frontOnWhite) {
                     stopMotors();
-                    System.exit(1);
+                    telemetry.addData("Error!", "Front color sensor isn't working!");
+                    telemetry.update();
+                    stateCounter = 9;
                 } else {
                     stopMotors();
                     stateCounter = 3;
                 }
                 break;
             case 2:
+                //When both sensor are on line, turn to straddle it
                 if(isColorSensorOnWhite(frontColor) && isColorSensorOnWhite(backColor)) {
-                    runMotors(-0.5, 0.5);
+                    runMotors(-0.25, 0.25);
                 } else {
                     stopMotors();
                     stateCounter = 5;
                 }
                 break;
             case 3:
+                telemetry.addData("Case 3", "Here!");
+                telemetry.addData("?", isColorSensorOnWhite(backColor));
+                //If the front color sensor was on the line
                 if(isColorSensorOnWhite(backColor)) {
                     stopMotors();
                     stateCounter = 4;
                 } else {
-                    runMotors(0, 0.5);
+                    runMotors(0, -0.25);
                 }
                 break;
             case 4:
+                telemetry.addData("Case 4", "Here!");
+                //Now swing back color sensor over the line
                 if(isColorSensorOnGray(backColor)) {
+                    telemetry.addData("Finished", "With case 4");
                     stopMotors();
-                    stateCounter = 5;
+                    stateCounter = 10;
                 } else {
-                    runMotors(0, 0.5);
+                    runMotors(0, -0.25);
                 }
                 break;
             case 5:
@@ -144,7 +157,9 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
                         stateCounter = 7;
                     } else {
                         leftBooper.setPosition(BOOPER_UP);
-                        System.exit(1);
+                        telemetry.addData("Error!", "Light sensor isn't working!");
+                        telemetry.update();
+                        stateCounter = 9;
                     }
                 }
                 break;
@@ -194,6 +209,15 @@ public class RedBeaconAuto extends FourWheelAutoMethods {
             case 9:
                 break;
         }
+
         telemetry.update();
+    }
+
+    public void CollectTelemetry() {
+        telemetry.addData("State", stateCounter);
+        telemetry.addData("AlphaF", frontColor.alpha());
+        telemetry.addData("AlphaB", backColor.alpha());
+        telemetry.addData("Front", isColorSensorOnWhite(frontColor));
+        telemetry.addData("Back", isColorSensorOnWhite(backColor));
     }
 }
