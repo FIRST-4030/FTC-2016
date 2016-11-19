@@ -65,26 +65,15 @@ public class OneSixTeleOp extends TankOpMode {
 
         CollectTelemetry();
 
-        //Turning on and off the collector with the 2 a button
-        if(gamepad2.a) {
-            isA2Pressed = true;
-        } else if(isA2Pressed) {
-            isA2Pressed = false;
-            if(isCollectorOn) {
-                collectorMotor.setPower(0.0);
-                isCollectorOn = false;
-            } else {
-                collectorMotor.setPower(COLLECTOR_IN);
-                isCollectorOn = true;
-            }
-        }
-
-        //Emergency out
+        //Emergency out and collector off
         if(gamepad2.back) {
-            isBackPressed = true;
-        } else if(isBackPressed) {
-            isBackPressed = false;
             collectorMotor.setPower(-COLLECTOR_IN);
+            isBackPressed = true;
+        } else if(gamepad2.a) {
+            collectorMotor.setPower(0.0);
+            isA2Pressed = true;
+        } else {
+            collectorMotor.setPower(COLLECTOR_IN);
         }
 
         //Firing
