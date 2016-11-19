@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.LightSensor;
@@ -14,6 +15,7 @@ import java.util.Timer;
  * Created by robotics on 11/11/2016.
  */
 
+@Disabled
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Red Beacon Auto", group = "AutoMode")
 public class RedBeaconAuto extends FourWheelAutoMethods {
 

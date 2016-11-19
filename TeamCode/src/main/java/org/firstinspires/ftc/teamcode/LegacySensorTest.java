@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.hitechnic.HiTechnicNxtGyroSensor;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -11,6 +12,7 @@ import com.qualcomm.robotcore.hardware.LightSensor;
  * Created by robotics on 10/22/2016.
  */
 
+@Disabled
 @TeleOp(name = "Sensors: HiTech Gyro, Lego Light", group = "Sensor")
 public class LegacySensorTest extends LinearOpMode {
 

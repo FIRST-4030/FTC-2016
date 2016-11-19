@@ -21,6 +21,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
  * Created by robotics on 10/12/2016.
  */
 
+@Disabled
 @TeleOp(name = "Sensor Test", group = "Test")
 public class SensorReaderTest extends LinearOpMode {
     @Override
