@@ -61,6 +61,11 @@ public class VuforiaTest extends OpMode {
     public static final String TAG = "Vuforia Test";
     public static final boolean DEBUG = false;
 
+    // Short names for external constants
+    public static final VuforiaLocalizer.CameraDirection CAMERA_DIRECTION = VuforiaLocalizer.CameraDirection.BACK;
+    public static final AxesReference AXES_REFERENCE = AxesReference.EXTRINSIC;
+    public static final AngleUnit ANGLE_UNIT = AngleUnit.DEGREES;
+
     // Tracking targets
     public static final String TARGETS_FILE = "FTC_2016-17";
     public static final int TARGETS_NUM = 4;
@@ -72,7 +77,6 @@ public class VuforiaTest extends OpMode {
     public static final float MM_PER_INCH = 25.4f;
     public static final float BOT_WIDTH = 18 * MM_PER_INCH;
     public static final float FIELD_WIDTH = (12 * 12 - 2) * MM_PER_INCH;
-    public static final VuforiaLocalizer.CameraDirection CAMERA_DIRECTION = VuforiaLocalizer.CameraDirection.BACK;
 
     // Team-specific Vuforia key
     // TODO: If you downloaded this file from another team you need to get your own Vuforia key
@@ -84,7 +88,7 @@ public class VuforiaTest extends OpMode {
     // The actual data we care about
     private long timestamp = 0;
     private int[] location = new int[3];
-    private int[] pose = new int[3];
+    private int[] orientation = new int[3];
     private HashMap<String, Boolean> visible = new HashMap<>();
 
     @Override
@@ -175,32 +179,33 @@ public class VuforiaTest extends OpMode {
              */
             OpenGLMatrix newLocation = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
             // TODO: Find out if we need this or can get the pose from the location matrix
-            OpenGLMatrix newPose = ((VuforiaTrackableDefaultListener) trackable.getListener()).getPose();
-            if (newLocation != null && newPose != null) {
+            if (newLocation != null) {
+                // Extract our location from the matrix
                 for (int i = 0; i < location.length; i++) {
                     location[i] = (int) newLocation.get(i, 3);
                 }
-                for (int i = 0; i < pose.length; i++) {
-                    // TODO: This is probably not where the pose lives
-                    pose[i] = (int) newPose.get(i, 3);
-                }
+
+                // Calculate the orientation of our view
+                // TODO: This is an untested guess
+                Orientation newOrientation = Orientation.getOrientation(newLocation, AXES_REFERENCE, AxesOrder.XYZ, ANGLE_UNIT);
+                orientation[0] = (int) newOrientation.firstAngle;
+                orientation[1] = (int) newOrientation.secondAngle;
+                orientation[2] = (int) newOrientation.thirdAngle;
+
+                // Timestamp the update
                 timestamp = System.currentTimeMillis();
 
                 // Debug telemetry, if enabled
                 if (DEBUG) {
-                    //telemetry.addData("Location", newLocation.formatAsTransform());
                     for (int i = 0; i < newLocation.numRows(); i++) {
                         for (int j = 0; j < newLocation.numCols(); j++) {
                             telemetry.addData("Loc[" + i + "][" + j + "]", newLocation.get(i, j));
                         }
                     }
-
-                    //telemetry.addData("Pose", newPose.formatAsTransform());
-                    for (int i = 0; i < newPose.numRows(); i++) {
-                        for (int j = 0; j < newPose.numCols(); j++) {
-                            telemetry.addData("Pos[" + i + "][" + j + "]", newPose.get(i, j));
-                        }
+                    for (int i = 0; i < orientation.length; i++) {
+                        telemetry.addData("Rot[" + i + "]", orientation[i]);
                     }
+                    telemetry.addData("Location", newLocation.formatAsTransform());
                 }
             }
         }
@@ -226,8 +231,8 @@ public class VuforiaTest extends OpMode {
         return location;
     }
 
-    public int[] getPose() {
-        return pose;
+    public int[] getOrientation() {
+        return orientation;
     }
 
     public int getX() {
@@ -240,7 +245,7 @@ public class VuforiaTest extends OpMode {
 
     public int getHeading() {
         // TODO: This is probably not the heading
-        return pose[0];
+        return orientation[0];
     }
 
 
@@ -253,8 +258,8 @@ public class VuforiaTest extends OpMode {
         return OpenGLMatrix
                 .translation(postion[0], postion[1], postion[2])
                 .multiplied(Orientation.getRotationMatrix(
-                        AxesReference.EXTRINSIC, order,
-                        AngleUnit.DEGREES, rotation[0], rotation[1], rotation[2]));
+                        AXES_REFERENCE, order, ANGLE_UNIT,
+                        rotation[0], rotation[1], rotation[2]));
     }
 
     // More Java blasphemy
