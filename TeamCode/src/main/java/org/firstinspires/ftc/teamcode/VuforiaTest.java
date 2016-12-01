@@ -33,7 +33,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.ftcrobotcontroller.R;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.vuforia.HINT;
 import com.vuforia.Vuforia;
 
@@ -49,144 +49,223 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefau
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
-public class VuforiaTest extends LinearOpMode {
+public class VuforiaTest extends OpMode {
 
     @SuppressWarnings("WeakerAccess")
     public static final String TAG = "Vuforia Test";
+    public static final boolean DEBUG = false;
+
+    // Tracking targets
+    public static final String TARGETS_FILE = "FTC_2016-17";
+    public static final int TARGETS_NUM = 4;
+    public static final float[] TARGETS_ROTATION_RED = {90, 90, 0};
+    public static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
+
+    // Field, camera and robot constants
+    public static final int TRACKING_TIMEOUT = 1000;
+    public static final float MM_PER_INCH = 25.4f;
+    public static final float BOT_WIDTH = 18 * MM_PER_INCH;
+    public static final float FIELD_WIDTH = (12 * 12 - 2) * MM_PER_INCH;
+    public static final VuforiaLocalizer.CameraDirection CAMERA_DIRECTION = VuforiaLocalizer.CameraDirection.BACK;
+
+    // Team-specific Vuforia key
+    // TODO: If you downloaded this file from another team you need to get your own Vuforia key
+    private static final String VUFORIA_KEY = "AbgpAh3/////AAAAGTwS0imaZU6wjVVHhw7cr1iHxcyPegw1+zPNzs+oNjtZlwpyvuwb2hdTLeEEj0gPTWUgVfLbnn6BrV6pafSnN8oCEEZrbVicTGw02BT+V0IzD43++kcsLVuumaM9yAUlAaDPiuEvEx6AZxYnM05KMzlAtMtfgW8tOIvjlicxep9tPhr1Z1Z3JrDt8s8mPo3GsSRSvpoSXZfxRLi0CwGEJlTuVrP59wLhsvr3CZ5Nr7gCNznhAaiGp4LhtCPoXsIUjsQHwO2hmskW670gZGIZl7BvqVbN5mIwqOYF3ZsCUkR83pM7jSIsOMdiaLK5ZlVLG+z5AfgoPNDZo8iYiqTncIiSUL5oJuh2NIeiG+nwcPJV";
+
+    // Dynamic things we need to remember
+    private List<VuforiaTrackable> TARGETS = new ArrayList<>();
+
+    // The actual data we care about
+    private long timestamp = 0;
+    private int[] location = new int[3];
+    private int[] pose = new int[3];
+    private HashMap<String, Boolean> visible = new HashMap<>();
 
     @Override
-    public void runOpMode() throws InterruptedException {
-        /**
-         * Init Vuforia -- it needs a team-specific license key and data about the camera
-         */
+    public void init() {
+        // Placate drivers; sometimes Vuforia is slow to init
+        telemetry.addData(">", "Initalizing...");
+        telemetry.update();
+
+        // Init Vuforia
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(R.id.cameraMonitorViewId);
-        parameters.vuforiaLicenseKey = "AbgpAh3/////AAAAGTwS0imaZU6wjVVHhw7cr1iHxcyPegw1+zPNzs+oNjtZlwpyvuwb2hdTLeEEj0gPTWUgVfLbnn6BrV6pafSnN8oCEEZrbVicTGw02BT+V0IzD43++kcsLVuumaM9yAUlAaDPiuEvEx6AZxYnM05KMzlAtMtfgW8tOIvjlicxep9tPhr1Z1Z3JrDt8s8mPo3GsSRSvpoSXZfxRLi0CwGEJlTuVrP59wLhsvr3CZ5Nr7gCNznhAaiGp4LhtCPoXsIUjsQHwO2hmskW670gZGIZl7BvqVbN5mIwqOYF3ZsCUkR83pM7jSIsOMdiaLK5ZlVLG+z5AfgoPNDZo8iYiqTncIiSUL5oJuh2NIeiG+nwcPJV";
-        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraDirection = CAMERA_DIRECTION;
         VuforiaLocalizer vuforia = ClassFactory.createVuforiaLocalizer(parameters);
 
         /**
          * Pre-processed target images from the Vuforia target manager:
          * https://developer.vuforia.com/target-manager.
          */
-        VuforiaTrackables wheelsToolsLegoGears = vuforia.loadTrackablesFromAsset("FTC_2016-17");
-        Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, 4);
+        VuforiaTrackables targets = vuforia.loadTrackablesFromAsset(TARGETS_FILE);
+        Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, TARGETS_NUM);
 
-        /**
-         * Name the 4 targets and grab references to each
-         * TODO: This should be a data structure
-         */
-        VuforiaTrackable redTargetA = wheelsToolsLegoGears.get(0);
-        redTargetA.setName("Wheels");
-        VuforiaTrackable redTargetB = wheelsToolsLegoGears.get(1);
-        redTargetB.setName("Tools");
-        VuforiaTrackable blueTargetA = wheelsToolsLegoGears.get(2);
-        blueTargetA.setName("LEGO");
-        VuforiaTrackable blueTargetB = wheelsToolsLegoGears.get(3);
-        blueTargetB.setName("Gears");
+        // Name and locate the targets
+        // TODO: These positions are imaginary. We need to find the real ones before navigation.
+        initTrackable(targets, 0, "Wheels", new float[]{-FIELD_WIDTH / 2, 0, 0}, TARGETS_ROTATION_RED);
+        initTrackable(targets, 1, "Tools", new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0}, TARGETS_ROTATION_RED);
+        initTrackable(targets, 3, "LEGO", new float[]{0, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
+        initTrackable(targets, 4, "Gears", new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
+        TARGETS.addAll(targets);
 
-        /** For convenience, gather together all the trackable objects in one easily-iterable collection */
-        List<VuforiaTrackable> allTrackables = new ArrayList<>();
-        allTrackables.addAll(wheelsToolsLegoGears);
-
-        /**
-         * Record the visibility of all targets during each Vuforia processing loop
-         */
-        HashMap<String, Boolean> visibleTargets = new HashMap<>();
-        for (VuforiaTrackable trackable : allTrackables) {
-            visibleTargets.put(trackable.getName(), false);
+        // Position and rotation of the phone on the robot
+        // TODO: This location and pose may also be imaginary, but should at least be close.
+        OpenGLMatrix phoneLocation = positionRotationMatrix(new float[]{BOT_WIDTH / 2, 0, 0}, new float[]{-90, 0, 0}, AxesOrder.YZY);
+        for (VuforiaTrackable trackable : TARGETS) {
+            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(phoneLocation, parameters.cameraDirection);
         }
 
-        // Field and robot parameters
-        // TODO: These values are approximate. We should improve them before navigation.
-        float mmPerInch = 25.4f;
-        float mmBotWidth = 18 * mmPerInch;            // ... or whatever is right for your robot
-        float mmFTCFieldWidth = (12 * 12 - 2) * mmPerInch;   // the FTC field is ~11'10" center-to-center of the glass panels
-
-        // Red targets
-        // TODO: These positions are imaginary. We need to find the real ones before navigation.
-        setTargetPosition(-mmFTCFieldWidth / 2, 0, 0, redTargetA);
-        setTargetPosition(-mmFTCFieldWidth / 2, mmFTCFieldWidth / 4, 0, redTargetB);
-
-        // Blue targets
-        // TODO: These positions are imaginary. We need to find the real ones before navigation.
-        setTargetPosition(0, mmFTCFieldWidth / 2, 0, blueTargetA);
-        setTargetPosition(mmFTCFieldWidth / 4, mmFTCFieldWidth / 2, 0, blueTargetB);
-
-        /**
-         * Let Vuforia know that we want to track all targets relative to the phone and provide a
-         * transformation to defien the phone's location relative to the robot
-         */
-        OpenGLMatrix phoneLocationOnRobot = OpenGLMatrix
-                .translation(mmBotWidth / 2, 0, 0)
-                .multiplied(Orientation.getRotationMatrix(
-                        AxesReference.EXTRINSIC, AxesOrder.YZY,
-                        AngleUnit.DEGREES, -90, 0, 0));
-        for (VuforiaTrackable trackable : allTrackables) {
-            ((VuforiaTrackableDefaultListener)trackable.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters.cameraDirection);
+        // Start Vuforia tracking
+        targets.activate();
+        for (VuforiaTrackable trackable : TARGETS) {
+            visible.put(trackable.getName(), false);
         }
 
         // Wait for the game to begin
-        telemetry.addData(">", "Press Play to start tracking");
+        telemetry.addData(">", "Ready");
         telemetry.update();
-        waitForStart();
+    }
 
-        // Start Vuforia tracking
-        wheelsToolsLegoGears.activate();
+    @Override
+    public void init_loop() {
+    }
 
-        long lastTimestamp = 0;
-        OpenGLMatrix lastLocation = null;
+    @Override
+    public void start() {
+        telemetry.clearAll();
+    }
 
-        while (opModeIsActive()) {
+    @Override
+    public void loop() {
+        // Update our location and pose
+        doTracking();
+
+        // Feedback to the DS
+        telemetry.addData("X/Y/Heading", getX() + "/" + getY() + "/" + getHeading());
+        telemetry.addData("Stale", isStale() ? "Yes" : "No");
+        telemetry.addData("Visible", Arrays.toString(visible.keySet().toArray()));
+        telemetry.addData("Update", getTimestamp());
+
+        // TODO: Presumably driving or something
+
+        // Loop invariants
+        telemetry.update();
+    }
+
+    // TODO: Consider spawning a thread for this loop (if allowed by the framework)
+    private void doTracking() {
+        for (VuforiaTrackable trackable : TARGETS) {
+            visible.put(trackable.getName(), ((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible());
+
             /**
-             * Track all configured targets
+             * Update the location and pose track
+             *
+             * We poll for each trackable so this happens in the loop, but the overall tracking
+             * is aggregated among all targets with a defined pose and location. The current
+             * field of view will dictate the quality of the track and if one or more targets
+             * are present they will be the primary basis for tracking but tracking persists
+             * even when the view does not include a target, and is self-consistent when the
+             * view includes multiple targets
              */
-            for (VuforiaTrackable trackable : allTrackables) {
-                // Visibility updates for all targets and status updates for the tracked target
-                boolean visible = ((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible();
-                visibleTargets.put(trackable.getName(), visible);
-
-                // If we're evaluating an enabled target, update the location track
-                OpenGLMatrix newLocation = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
-                if (newLocation != null) {
-                    lastLocation = newLocation;
-                    lastTimestamp = System.currentTimeMillis();
+            OpenGLMatrix newLocation = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
+            // TODO: Find out if we need this or can get the pose from the location matrix
+            OpenGLMatrix newPose = ((VuforiaTrackableDefaultListener) trackable.getListener()).getPose();
+            if (newLocation != null && newPose != null) {
+                for (int i = 0; i < location.length; i++) {
+                    location[i] = (int) newLocation.get(i, 3);
                 }
-            }
+                for (int i = 0; i < pose.length; i++) {
+                    // TODO: This is probably not where the pose lives
+                    pose[i] = (int) newPose.get(i, 3);
+                }
+                timestamp = System.currentTimeMillis();
 
-            /**
-             * Tell the DS where were are
-             */
-            {
-                String visible = "";
-                for (String name : visibleTargets.keySet()) {
-                    if (visibleTargets.get(name)) {
-                        visible += name + " ";
+                // Debug telemetry, if enabled
+                if (DEBUG) {
+                    //telemetry.addData("Location", newLocation.formatAsTransform());
+                    for (int i = 0; i < newLocation.numRows(); i++) {
+                        for (int j = 0; j < newLocation.numCols(); j++) {
+                            telemetry.addData("Loc[" + i + "][" + j + "]", newLocation.get(i, j));
+                        }
+                    }
+
+                    //telemetry.addData("Pose", newPose.formatAsTransform());
+                    for (int i = 0; i < newPose.numRows(); i++) {
+                        for (int j = 0; j < newPose.numCols(); j++) {
+                            telemetry.addData("Pos[" + i + "][" + j + "]", newPose.get(i, j));
+                        }
                     }
                 }
-                telemetry.addData("Visible", visible);
             }
-            //telemetry.addData("Pos", lastLocation != null ? lastLocation.formatAsTransform() : "<Unknown>");
-            telemetry.addData("X", lastLocation != null ? (int)lastLocation.get(0,3) : "<Unknonw>");
-            telemetry.addData("Y", lastLocation != null ? (int)lastLocation.get(1,3) : "<Unknown>");
-            //telemetry.addData("Z", lastLocation != null ? (int)lastLocation.get(2,3) : "");
-            telemetry.addData("Update", lastTimestamp);
-
-            // Loop invariants
-            telemetry.update();
-            idle();
         }
     }
 
-    private void setTargetPosition(float x, float y, float z, VuforiaTrackable trackable) {
-        OpenGLMatrix targetLocation = OpenGLMatrix
-                .translation(x, y, z)
+
+    /**
+     *
+     * Getters
+     *
+     */
+    public HashMap<String, Boolean> getVisible() {
+        return visible;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public boolean isStale() {
+        return (getTimestamp() +  TRACKING_TIMEOUT < System.currentTimeMillis());
+    }
+
+    public int[] getLocation() {
+        return location;
+    }
+
+    public int[] getPose() {
+        return pose;
+    }
+
+    public int getX() {
+        return location[0];
+    }
+
+    public int getY() {
+        return location[1];
+    }
+
+    public int getHeading() {
+        // TODO: This is probably not the heading
+        return pose[0];
+    }
+
+
+    /**
+     *
+     * Helpers
+     *
+     */
+
+    // It's like a macro, but for Java
+    private OpenGLMatrix positionRotationMatrix(float[] postion, float[] rotation, AxesOrder order) {
+        return OpenGLMatrix
+                .translation(postion[0], postion[1], postion[2])
                 .multiplied(Orientation.getRotationMatrix(
-                        AxesReference.EXTRINSIC, AxesOrder.XZX,
-                        AngleUnit.DEGREES, 90, 90, 0));
-        trackable.setLocation(targetLocation);
+                        AxesReference.EXTRINSIC, order,
+                        AngleUnit.DEGREES, rotation[0], rotation[1], rotation[2]));
+    }
+
+    // More Java blasphemy
+    private VuforiaTrackable initTrackable(VuforiaTrackables trackables, int index, String name, float[] position, float[] rotation) {
+        VuforiaTrackable trackable = trackables.get(index);
+        trackable.setName(name);
+        OpenGLMatrix location = positionRotationMatrix(position, rotation, AxesOrder.XZX);
+        trackable.setLocation(location);
+        return trackable;
     }
 }
