@@ -34,6 +34,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.ftcrobotcontroller.R;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.util.RobotLog;
 import com.vuforia.HINT;
 import com.vuforia.Vuforia;
 
@@ -106,14 +107,14 @@ public class VuforiaTest extends OpMode {
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, TARGETS_NUM);
 
         // Name and locate the targets
-        // TODO: These positions are imaginary. We need to find the real ones before navigation.
+        // TODO: These locations are imaginary. We need to find the real ones before navigation.
         initTrackable(targets, 0, "Wheels", new float[]{-FIELD_WIDTH / 2, 0, 0}, TARGETS_ROTATION_RED);
         initTrackable(targets, 1, "Tools", new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0}, TARGETS_ROTATION_RED);
         initTrackable(targets, 3, "LEGO", new float[]{0, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
         initTrackable(targets, 4, "Gears", new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
         TARGETS.addAll(targets);
 
-        // Position and rotation of the phone on the robot
+        // Position and rotation of the image sensor plane relative to the robot
         // TODO: This location and pose may also be imaginary, but should at least be close.
         OpenGLMatrix phoneLocation = positionRotationMatrix(new float[]{BOT_WIDTH / 2, 0, 0}, new float[]{-90, 0, 0}, AxesOrder.YZY);
         for (VuforiaTrackable trackable : TARGETS) {
@@ -207,9 +208,7 @@ public class VuforiaTest extends OpMode {
 
 
     /**
-     *
      * Getters
-     *
      */
     public HashMap<String, Boolean> getVisible() {
         return visible;
@@ -220,7 +219,7 @@ public class VuforiaTest extends OpMode {
     }
 
     public boolean isStale() {
-        return (getTimestamp() +  TRACKING_TIMEOUT < System.currentTimeMillis());
+        return (timestamp + TRACKING_TIMEOUT < System.currentTimeMillis());
     }
 
     public int[] getLocation() {
@@ -246,9 +245,7 @@ public class VuforiaTest extends OpMode {
 
 
     /**
-     *
      * Helpers
-     *
      */
 
     // It's like a macro, but for Java
@@ -262,6 +259,11 @@ public class VuforiaTest extends OpMode {
 
     // More Java blasphemy
     private VuforiaTrackable initTrackable(VuforiaTrackables trackables, int index, String name, float[] position, float[] rotation) {
+        if (index > TARGETS_NUM || index < 0) {
+            RobotLog.a("Invalid Vuforia trackable index (%d) for target: %s", index, name);
+            return null;
+        }
+
         VuforiaTrackable trackable = trackables.get(index);
         trackable.setName(name);
         OpenGLMatrix location = positionRotationMatrix(position, rotation, AxesOrder.XZX);
