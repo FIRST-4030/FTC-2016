@@ -34,6 +34,8 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.ftcrobotcontroller.R;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.vuforia.HINT;
 import com.vuforia.Vuforia;
@@ -48,6 +50,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.firstinspires.ftc.teamcode.classes.TankOpMode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,7 +58,7 @@ import java.util.HashMap;
 import java.util.List;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
-public class VuforiaTest extends OpMode {
+public class VuforiaTest extends TankOpMode {
 
     @SuppressWarnings("WeakerAccess")
     public static final String TAG = "Vuforia Test";
@@ -83,7 +86,8 @@ public class VuforiaTest extends OpMode {
     // TODO: If you downloaded this file from another team you need to get your own Vuforia key
     private static final String VUFORIA_KEY = "AbgpAh3/////AAAAGTwS0imaZU6wjVVHhw7cr1iHxcyPegw1+zPNzs+oNjtZlwpyvuwb2hdTLeEEj0gPTWUgVfLbnn6BrV6pafSnN8oCEEZrbVicTGw02BT+V0IzD43++kcsLVuumaM9yAUlAaDPiuEvEx6AZxYnM05KMzlAtMtfgW8tOIvjlicxep9tPhr1Z1Z3JrDt8s8mPo3GsSRSvpoSXZfxRLi0CwGEJlTuVrP59wLhsvr3CZ5Nr7gCNznhAaiGp4LhtCPoXsIUjsQHwO2hmskW670gZGIZl7BvqVbN5mIwqOYF3ZsCUkR83pM7jSIsOMdiaLK5ZlVLG+z5AfgoPNDZo8iYiqTncIiSUL5oJuh2NIeiG+nwcPJV";
 
-    // Dynamic things we need to remember
+    // Dynamic things we need to remember\
+    private VuforiaTrackables TARGETS_RAW = null;
     private List<VuforiaTrackable> TARGETS = new ArrayList<>();
 
     // The actual data we care about
@@ -92,8 +96,16 @@ public class VuforiaTest extends OpMode {
     private int[] orientation = new int[3];
     private HashMap<String, Boolean> visible = new HashMap<>();
 
+    public VuforiaTest() {
+        super("front left", "front right", "back left", "back right");
+    }
+
     @Override
     public void init() {
+        super.init();
+        backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+
         // Placate drivers; sometimes Vuforia is slow to init
         telemetry.addData(">", "Initalizing...");
         telemetry.update();
@@ -108,28 +120,22 @@ public class VuforiaTest extends OpMode {
          * Pre-processed target images from the Vuforia target manager:
          * https://developer.vuforia.com/target-manager.
          */
-        VuforiaTrackables targets = vuforia.loadTrackablesFromAsset(TARGETS_FILE);
+        TARGETS_RAW = vuforia.loadTrackablesFromAsset(TARGETS_FILE);
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, TARGETS_NUM);
 
         // Name and locate the targets
         // TODO: These locations are imaginary. We need to find the real ones before navigation.
-        initTrackable(targets, 0, "Wheels", new float[]{-FIELD_WIDTH / 2, 0, 0}, TARGETS_ROTATION_RED);
-        initTrackable(targets, 1, "Tools", new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0}, TARGETS_ROTATION_RED);
-        initTrackable(targets, 2, "LEGO", new float[]{0, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
-        initTrackable(targets, 3, "Gears", new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
-        TARGETS.addAll(targets);
+        initTrackable(TARGETS_RAW, 0, "Wheels", new float[]{-FIELD_WIDTH / 2, 0, 0}, TARGETS_ROTATION_RED);
+        initTrackable(TARGETS_RAW, 1, "Tools", new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0}, TARGETS_ROTATION_RED);
+        initTrackable(TARGETS_RAW, 2, "LEGO", new float[]{0, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
+        initTrackable(TARGETS_RAW, 3, "Gears", new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
+        TARGETS.addAll(TARGETS_RAW);
 
         // Position and rotation of the image sensor plane relative to the robot
         // TODO: This location and pose may also be imaginary, but should at least be close.
         OpenGLMatrix phoneLocation = positionRotationMatrix(new float[]{BOT_WIDTH / 2, 0, 0}, new float[]{-90, 0, 0}, AxesOrder.YZY);
         for (VuforiaTrackable trackable : TARGETS) {
             ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(phoneLocation, parameters.cameraDirection);
-        }
-
-        // Start Vuforia tracking
-        targets.activate();
-        for (VuforiaTrackable trackable : TARGETS) {
-            visible.put(trackable.getName(), false);
         }
 
         // Wait for the game to begin
@@ -144,15 +150,23 @@ public class VuforiaTest extends OpMode {
     @Override
     public void start() {
         telemetry.clearAll();
+
+        // Start Vuforia tracking
+        TARGETS_RAW.activate();
+        for (VuforiaTrackable trackable : TARGETS) {
+            visible.put(trackable.getName(), false);
+        }
     }
 
     @Override
     public void loop() {
+        super.loop();
         // Update our location and pose
         doTracking();
 
         // Feedback to the DS
         if (!DEBUG) {
+            telemetry.addData("R/L", gamepad1.right_stick_y + "/" + gamepad1.left_stick_y);
             telemetry.addData("X/Y/Heading", getX() + "/" + getY() + "/" + getHeading());
             telemetry.addData("Stale", isStale() ? "Yes" : "No");
             telemetry.addData("Visible", Arrays.toString(visible.keySet().toArray()) + "\n" +

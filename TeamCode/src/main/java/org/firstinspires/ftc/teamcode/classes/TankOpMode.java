@@ -19,6 +19,9 @@ public abstract class TankOpMode extends OpMode {
     protected DcMotor backRightMotor;
     protected boolean hasTwoMotors;
 
+    //When making constructors in other methods, you MUST
+    //delete the parameters for the method to work
+
     public TankOpMode (String lMotorName, String rMotorName){
 
         frontLeftMotorName = lMotorName;
@@ -54,7 +57,7 @@ public abstract class TankOpMode extends OpMode {
     @Override
     public void loop() {
 
-        CollectTelemetry();
+        //CollectTelemetry();
 
         float left = gamepad1.left_stick_y;
         float right = gamepad1.right_stick_y;
