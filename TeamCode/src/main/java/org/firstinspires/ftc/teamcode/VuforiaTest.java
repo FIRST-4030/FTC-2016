@@ -65,6 +65,7 @@ public class VuforiaTest extends OpMode {
     public static final VuforiaLocalizer.CameraDirection CAMERA_DIRECTION = VuforiaLocalizer.CameraDirection.BACK;
     public static final AxesReference AXES_REFERENCE = AxesReference.EXTRINSIC;
     public static final AngleUnit ANGLE_UNIT = AngleUnit.DEGREES;
+    public static final int FULL_CIRCLE = 360;
 
     // Tracking targets
     public static final String TARGETS_FILE = "FTC_2016-17";
@@ -114,8 +115,8 @@ public class VuforiaTest extends OpMode {
         // TODO: These locations are imaginary. We need to find the real ones before navigation.
         initTrackable(targets, 0, "Wheels", new float[]{-FIELD_WIDTH / 2, 0, 0}, TARGETS_ROTATION_RED);
         initTrackable(targets, 1, "Tools", new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0}, TARGETS_ROTATION_RED);
-        initTrackable(targets, 3, "LEGO", new float[]{0, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
-        initTrackable(targets, 4, "Gears", new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
+        initTrackable(targets, 2, "LEGO", new float[]{0, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
+        initTrackable(targets, 3, "Gears", new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
         TARGETS.addAll(targets);
 
         // Position and rotation of the image sensor plane relative to the robot
@@ -151,11 +152,13 @@ public class VuforiaTest extends OpMode {
         doTracking();
 
         // Feedback to the DS
-        telemetry.addData("X/Y/Heading", getX() + "/" + getY() + "/" + getHeading());
-        telemetry.addData("Stale", isStale() ? "Yes" : "No");
-        telemetry.addData("Visible", Arrays.toString(visible.keySet().toArray()));
-        telemetry.addData("Update", getTimestamp());
-
+        if (!DEBUG) {
+            telemetry.addData("X/Y/Heading", getX() + "/" + getY() + "/" + getHeading());
+            telemetry.addData("Stale", isStale() ? "Yes" : "No");
+            telemetry.addData("Visible", Arrays.toString(visible.keySet().toArray()) + "\n" +
+                    Arrays.toString(visible.values().toArray()));
+            telemetry.addData("Update", getTimestamp());
+        }
         // TODO: Presumably driving or something
 
         // Loop invariants
@@ -186,7 +189,6 @@ public class VuforiaTest extends OpMode {
                 }
 
                 // Calculate the orientation of our view
-                // TODO: This is an untested guess
                 Orientation newOrientation = Orientation.getOrientation(newLocation, AXES_REFERENCE, AxesOrder.XYZ, ANGLE_UNIT);
                 orientation[0] = (int) newOrientation.firstAngle;
                 orientation[1] = (int) newOrientation.secondAngle;
@@ -205,12 +207,12 @@ public class VuforiaTest extends OpMode {
                     for (int i = 0; i < orientation.length; i++) {
                         telemetry.addData("Rot[" + i + "]", orientation[i]);
                     }
+                    telemetry.addData("Heading", getHeading());
                     telemetry.addData("Location", newLocation.formatAsTransform());
                 }
             }
         }
     }
-
 
     /**
      * Getters
@@ -244,8 +246,16 @@ public class VuforiaTest extends OpMode {
     }
 
     public int getHeading() {
-        // TODO: This is probably not the heading
-        return orientation[0];
+        // TODO: This is still not a useful heading
+        int heading = orientation[2];
+        if (orientation[0] < 0) {
+            heading += FULL_CIRCLE / 2;
+        }
+        //if (heading < 0) {
+        //    heading += FULL_CIRCLE;
+        //}
+        //heading %= FULL_CIRCLE;
+        return heading;
     }
 
 
@@ -264,7 +274,7 @@ public class VuforiaTest extends OpMode {
 
     // More Java blasphemy
     private VuforiaTrackable initTrackable(VuforiaTrackables trackables, int index, String name, float[] position, float[] rotation) {
-        if (index > TARGETS_NUM || index < 0) {
+        if (index >= TARGETS_NUM || index < 0) {
             RobotLog.a("Invalid Vuforia trackable index (%d) for target: %s", index, name);
             return null;
         }
