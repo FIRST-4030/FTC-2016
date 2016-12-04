@@ -33,8 +33,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.ftcrobotcontroller.R;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.vuforia.HINT;
@@ -62,7 +60,7 @@ public class VuforiaTest extends TankOpMode {
 
     @SuppressWarnings("WeakerAccess")
     public static final String TAG = "Vuforia Test";
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = true;
 
     // Short names for external constants
     public static final VuforiaLocalizer.CameraDirection CAMERA_DIRECTION = VuforiaLocalizer.CameraDirection.BACK;
@@ -86,29 +84,41 @@ public class VuforiaTest extends TankOpMode {
     // TODO: If you downloaded this file from another team you need to get your own Vuforia key
     private static final String VUFORIA_KEY = "AbgpAh3/////AAAAGTwS0imaZU6wjVVHhw7cr1iHxcyPegw1+zPNzs+oNjtZlwpyvuwb2hdTLeEEj0gPTWUgVfLbnn6BrV6pafSnN8oCEEZrbVicTGw02BT+V0IzD43++kcsLVuumaM9yAUlAaDPiuEvEx6AZxYnM05KMzlAtMtfgW8tOIvjlicxep9tPhr1Z1Z3JrDt8s8mPo3GsSRSvpoSXZfxRLi0CwGEJlTuVrP59wLhsvr3CZ5Nr7gCNznhAaiGp4LhtCPoXsIUjsQHwO2hmskW670gZGIZl7BvqVbN5mIwqOYF3ZsCUkR83pM7jSIsOMdiaLK5ZlVLG+z5AfgoPNDZo8iYiqTncIiSUL5oJuh2NIeiG+nwcPJV";
 
-    // Dynamic things we need to remember\
+    // Dynamic things we need to remember
     private VuforiaTrackables TARGETS_RAW = null;
-    private List<VuforiaTrackable> TARGETS = new ArrayList<>();
+    private final List<VuforiaTrackable> TARGETS = new ArrayList<>();
+    private boolean DISABLE_TELEOP = false;
 
     // The actual data we care about
     private long timestamp = 0;
-    private int[] location = new int[3];
-    private int[] orientation = new int[3];
-    private HashMap<String, Boolean> visible = new HashMap<>();
+    private final int[] location = new int[3];
+    private final int[] orientation = new int[3];
+    private final HashMap<String, Boolean> visible = new HashMap<>();
 
+    // Tank Drive constructor
+    @SuppressWarnings("unused")
     public VuforiaTest() {
         super("front left", "front right", "back left", "back right");
     }
 
     @Override
     public void init() {
-        super.init();
-        backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        backRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
 
         // Placate drivers; sometimes Vuforia is slow to init
         telemetry.addData(">", "Initalizing...");
         telemetry.update();
+
+        // Init Tank Drive
+        // Try/Catch to keep running even if we can't talk to the hardware
+        try {
+            super.init();
+            backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            backRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        } catch (Exception e) {
+            DISABLE_TELEOP = true;
+            telemetry.log().add("ERROR: Unable to initalize motors");
+            telemetry.update();
+        }
 
         // Init Vuforia
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(R.id.cameraMonitorViewId);
@@ -139,7 +149,7 @@ public class VuforiaTest extends TankOpMode {
         }
 
         // Wait for the game to begin
-        telemetry.addData(">", "Ready");
+        telemetry.addData(">", "Ready for game start");
         telemetry.update();
     }
 
@@ -160,19 +170,21 @@ public class VuforiaTest extends TankOpMode {
 
     @Override
     public void loop() {
-        super.loop();
+        // Inhert TankDrive functionality (if enabled)
+        if (!DISABLE_TELEOP) {
+            super.loop();
+        }
+
         // Update our location and pose
         doTracking();
 
         // Feedback to the DS
-        if (!DEBUG) {
-            telemetry.addData("R/L", gamepad1.right_stick_y + "/" + gamepad1.left_stick_y);
-            telemetry.addData("X/Y/Heading", getX() + "/" + getY() + "/" + getHeading());
-            telemetry.addData("Stale", isStale() ? "Yes" : "No");
-            telemetry.addData("Visible", Arrays.toString(visible.keySet().toArray()) + "\n" +
-                    Arrays.toString(visible.values().toArray()));
-            telemetry.addData("Update", getTimestamp());
-        }
+        telemetry.addData("X/Y/Heading", getX() + "/" + getY() + "/" + getHeading());
+        telemetry.addData("Stale", isStale() ? "Yes" : "No");
+        telemetry.addData("Visible", Arrays.toString(visible.keySet().toArray()) + "\n" +
+                Arrays.toString(visible.values().toArray()));
+        telemetry.addData("Update", getTimestamp());
+
         // TODO: Presumably driving or something
 
         // Loop invariants
@@ -213,6 +225,9 @@ public class VuforiaTest extends TankOpMode {
 
                 // Debug telemetry, if enabled
                 if (DEBUG) {
+                    telemetry.setAutoClear(false);
+                    telemetry.clearAll();
+
                     for (int i = 0; i < newLocation.numRows(); i++) {
                         for (int j = 0; j < newLocation.numCols(); j++) {
                             telemetry.addData("Loc[" + i + "][" + j + "]", newLocation.get(i, j));
@@ -287,16 +302,15 @@ public class VuforiaTest extends TankOpMode {
     }
 
     // More Java blasphemy
-    private VuforiaTrackable initTrackable(VuforiaTrackables trackables, int index, String name, float[] position, float[] rotation) {
-        if (index >= TARGETS_NUM || index < 0) {
+    private void initTrackable(VuforiaTrackables trackables, int index, String name, float[] position, float[] rotation) {
+        if (index >= trackables.size() || index < 0) {
             RobotLog.a("Invalid Vuforia trackable index (%d) for target: %s", index, name);
-            return null;
+            return;
         }
 
         VuforiaTrackable trackable = trackables.get(index);
         trackable.setName(name);
         OpenGLMatrix location = positionRotationMatrix(position, rotation, AxesOrder.XZX);
         trackable.setLocation(location);
-        return trackable;
     }
 }
