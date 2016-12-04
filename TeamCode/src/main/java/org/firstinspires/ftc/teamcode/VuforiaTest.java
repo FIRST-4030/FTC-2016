@@ -21,7 +21,7 @@ written permission.
 NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
 LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESSFOR A PARTICULAR PURPOSE
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
@@ -51,16 +51,16 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.firstinspires.ftc.teamcode.classes.TankOpMode;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
 public class VuforiaTest extends TankOpMode {
 
-    @SuppressWarnings("WeakerAccess")
     public static final String TAG = "Vuforia Test";
-    public static final boolean DEBUG = true;
+    private static final boolean DISPLAY_STD = true;
+    private static final boolean DISPLAY_TARGET = false;
+    private static final boolean DISPLAY_LOCATION = false;
 
     // Short names for external constants
     public static final VuforiaLocalizer.CameraDirection CAMERA_DIRECTION = VuforiaLocalizer.CameraDirection.BACK;
@@ -75,7 +75,8 @@ public class VuforiaTest extends TankOpMode {
     public static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
 
     // Field, camera and robot constants
-    public static final int TRACKING_TIMEOUT = 1000;
+    public static final int TRACKING_TIMEOUT = 500;
+    public static final float MILLS_PER_SEC = 1000.0f;
     public static final float MM_PER_INCH = 25.4f;
     public static final float BOT_WIDTH = 18 * MM_PER_INCH;
     public static final float FIELD_WIDTH = (12 * 12 - 2) * MM_PER_INCH;
@@ -93,7 +94,8 @@ public class VuforiaTest extends TankOpMode {
     private long timestamp = 0;
     private final int[] location = new int[3];
     private final int[] orientation = new int[3];
-    private final HashMap<String, Boolean> visible = new HashMap<>();
+    private final HashMap<String, Boolean> targetVisible = new HashMap<>();
+    private final HashMap<String, Integer> targetAngle = new HashMap<>();
 
     // Tank Drive constructor
     @SuppressWarnings("unused")
@@ -164,13 +166,16 @@ public class VuforiaTest extends TankOpMode {
         // Start Vuforia tracking
         TARGETS_RAW.activate();
         for (VuforiaTrackable trackable : TARGETS) {
-            visible.put(trackable.getName(), false);
+            targetVisible.put(trackable.getName(), false);
+        }
+        for (VuforiaTrackable trackable : TARGETS) {
+            targetAngle.put(trackable.getName(), 0);
         }
     }
 
     @Override
     public void loop() {
-        // Inhert TankDrive functionality (if enabled)
+        // Inherit TankDrive functionality (if enabled)
         if (!DISABLE_TELEOP) {
             super.loop();
         }
@@ -178,14 +183,37 @@ public class VuforiaTest extends TankOpMode {
         // Update our location and pose
         doTracking();
 
-        // Feedback to the DS
-        telemetry.addData("X/Y/Heading", getX() + "/" + getY() + "/" + getHeading());
-        telemetry.addData("Stale", isStale() ? "Yes" : "No");
-        telemetry.addData("Visible", Arrays.toString(visible.keySet().toArray()) + "\n" +
-                Arrays.toString(visible.values().toArray()));
-        telemetry.addData("Update", getTimestamp());
+        // TODO: Presumably automated driving of some sort
 
-        // TODO: Presumably driving or something
+        // Feedback to the DS
+        if (DISPLAY_STD) {
+            telemetry.addData("Valid", isStale() ? "No" : "Yes");
+
+            String visibleStr = "";
+            for (String target : targetVisible.keySet()) {
+                if (getVisible(target)) {
+                    if (!visibleStr.isEmpty()) {
+                        visibleStr += ", ";
+                    }
+                    visibleStr += target;
+                }
+            }
+            if (visibleStr.isEmpty()) {
+                visibleStr = "<None>";
+            }
+            telemetry.addData("Visible", visibleStr);
+
+            for (String target : targetVisible.keySet()) {
+                if (getVisible(target)) {
+                    telemetry.addData(target + " ∠", getTargetAngle(target) + "°");
+                }
+            }
+
+            telemetry.addData("X/Y Heading", getX() + "/" + getY() + " " + getHeading() + "°");
+            if (getTimestamp() > 0) {
+                telemetry.addData("Age", "%.2f", (System.currentTimeMillis() - getTimestamp()) / MILLS_PER_SEC);
+            }
+        }
 
         // Loop invariants
         telemetry.update();
@@ -194,10 +222,34 @@ public class VuforiaTest extends TankOpMode {
     // TODO: Consider spawning a thread for this loop (if allowed by the framework)
     private void doTracking() {
         for (VuforiaTrackable trackable : TARGETS) {
-            visible.put(trackable.getName(), ((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible());
+            // Per-target visibility (somewhat imaginary but still useful)
+            targetVisible.put(trackable.getName(), ((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible());
+
+            // Angle to target, if available
+            OpenGLMatrix newPose = ((VuforiaTrackableDefaultListener) trackable.getListener()).getPose();
+            if (newPose != null) {
+                Orientation poseOrientation = Orientation.getOrientation(newPose, AXES_REFERENCE, AxesOrder.XYZ, ANGLE_UNIT);
+                targetAngle.put(trackable.getName(), (int) poseOrientation.secondAngle);
+
+                if (DISPLAY_TARGET) {
+                    telemetry.setAutoClear(false);
+                    telemetry.clearAll();
+
+                    telemetry.addData("Pose", trackable.getName());
+                    for (int i = 0; i < newPose.numRows(); i++) {
+                        for (int j = 0; j < newPose.numCols(); j++) {
+                            telemetry.addData("Pose[" + i + "][" + j + "]", newPose.get(i, j));
+                        }
+                    }
+
+                    telemetry.addData("PoseRot0", poseOrientation.firstAngle);
+                    telemetry.addData("PoseRot1", poseOrientation.secondAngle);
+                    telemetry.addData("PoseRot2", poseOrientation.thirdAngle);
+                }
+            }
 
             /**
-             * Update the location and pose track
+             * Update the location and orientation track
              *
              * We poll for each trackable so this happens in the loop, but the overall tracking
              * is aggregated among all targets with a defined pose and location. The current
@@ -224,7 +276,7 @@ public class VuforiaTest extends TankOpMode {
                 timestamp = System.currentTimeMillis();
 
                 // Debug telemetry, if enabled
-                if (DEBUG) {
+                if (DISPLAY_LOCATION) {
                     telemetry.setAutoClear(false);
                     telemetry.clearAll();
 
@@ -247,7 +299,19 @@ public class VuforiaTest extends TankOpMode {
      * Getters
      */
     public HashMap<String, Boolean> getVisible() {
-        return visible;
+        return targetVisible;
+    }
+
+    public boolean getVisible(String target) {
+        return targetVisible.get(target);
+    }
+
+    public HashMap<String, Integer> getTargetAngle() {
+        return targetAngle;
+    }
+
+    public int getTargetAngle(String target) {
+        return targetAngle.get(target);
     }
 
     public long getTimestamp() {
@@ -275,15 +339,14 @@ public class VuforiaTest extends TankOpMode {
     }
 
     public int getHeading() {
-        // TODO: This is still not a useful heading
         int heading = orientation[2];
         if (orientation[0] < 0) {
-            heading += FULL_CIRCLE / 2;
+            heading -= FULL_CIRCLE / 2;
         }
-        //if (heading < 0) {
-        //    heading += FULL_CIRCLE;
-        //}
-        //heading %= FULL_CIRCLE;
+        if (heading < 0) {
+            heading += FULL_CIRCLE;
+        }
+        heading %= FULL_CIRCLE;
         return heading;
     }
 
@@ -293,9 +356,9 @@ public class VuforiaTest extends TankOpMode {
      */
 
     // It's like a macro, but for Java
-    private OpenGLMatrix positionRotationMatrix(float[] postion, float[] rotation, AxesOrder order) {
+    private OpenGLMatrix positionRotationMatrix(float[] position, float[] rotation, AxesOrder order) {
         return OpenGLMatrix
-                .translation(postion[0], postion[1], postion[2])
+                .translation(position[0], position[1], position[2])
                 .multiplied(Orientation.getRotationMatrix(
                         AXES_REFERENCE, order, ANGLE_UNIT,
                         rotation[0], rotation[1], rotation[2]));
