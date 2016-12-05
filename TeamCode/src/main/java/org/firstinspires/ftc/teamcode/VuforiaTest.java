@@ -54,25 +54,47 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+class Target {
+    public final String name;
+    public final float[] raw;
+    public final float[] offset;
+    public final float[] rotation;
+    public final AxesOrder axesOrder;
+    public final int[] adjusted = new int[3];
+
+    public Target(String name, float[] location, float[] offset, float[] rotation) {
+        this.name = name;
+        this.raw = location;
+        this.offset = offset;
+        this.rotation = rotation;
+        this.axesOrder = AxesOrder.XZX;
+
+        for (int i = 0; i < 3; i++) {
+            this.adjusted[i] = (int)(location[i] + offset[i]);
+        }
+    }
+}
+
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
 public class VuforiaTest extends TankOpMode {
 
     public static final String TAG = "Vuforia Test";
+
+    // Debug flags
     private static final boolean DISPLAY_STD = true;
     private static final boolean DISPLAY_TARGET = false;
     private static final boolean DISPLAY_LOCATION = false;
+    private static final boolean DISPLAY_BEARING = false;
+
+    // Team-specific Vuforia key
+    // TODO: If you downloaded this file from another team you need to get your own Vuforia key
+    private static final String VUFORIA_KEY = "AbgpAh3/////AAAAGTwS0imaZU6wjVVHhw7cr1iHxcyPegw1+zPNzs+oNjtZlwpyvuwb2hdTLeEEj0gPTWUgVfLbnn6BrV6pafSnN8oCEEZrbVicTGw02BT+V0IzD43++kcsLVuumaM9yAUlAaDPiuEvEx6AZxYnM05KMzlAtMtfgW8tOIvjlicxep9tPhr1Z1Z3JrDt8s8mPo3GsSRSvpoSXZfxRLi0CwGEJlTuVrP59wLhsvr3CZ5Nr7gCNznhAaiGp4LhtCPoXsIUjsQHwO2hmskW670gZGIZl7BvqVbN5mIwqOYF3ZsCUkR83pM7jSIsOMdiaLK5ZlVLG+z5AfgoPNDZo8iYiqTncIiSUL5oJuh2NIeiG+nwcPJV";
 
     // Short names for external constants
     public static final VuforiaLocalizer.CameraDirection CAMERA_DIRECTION = VuforiaLocalizer.CameraDirection.BACK;
     public static final AxesReference AXES_REFERENCE = AxesReference.EXTRINSIC;
     public static final AngleUnit ANGLE_UNIT = AngleUnit.DEGREES;
     public static final int FULL_CIRCLE = 360;
-
-    // Tracking targets
-    public static final String TARGETS_FILE = "FTC_2016-17";
-    public static final int TARGETS_NUM = 4;
-    public static final float[] TARGETS_ROTATION_RED = {90, 90, 0};
-    public static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
 
     // Field, camera and robot constants
     public static final int TRACKING_TIMEOUT = 500;
@@ -81,9 +103,45 @@ public class VuforiaTest extends TankOpMode {
     public static final float BOT_WIDTH = 18 * MM_PER_INCH;
     public static final float FIELD_WIDTH = (12 * 12 - 2) * MM_PER_INCH;
 
-    // Team-specific Vuforia key
-    // TODO: If you downloaded this file from another team you need to get your own Vuforia key
-    private static final String VUFORIA_KEY = "AbgpAh3/////AAAAGTwS0imaZU6wjVVHhw7cr1iHxcyPegw1+zPNzs+oNjtZlwpyvuwb2hdTLeEEj0gPTWUgVfLbnn6BrV6pafSnN8oCEEZrbVicTGw02BT+V0IzD43++kcsLVuumaM9yAUlAaDPiuEvEx6AZxYnM05KMzlAtMtfgW8tOIvjlicxep9tPhr1Z1Z3JrDt8s8mPo3GsSRSvpoSXZfxRLi0CwGEJlTuVrP59wLhsvr3CZ5Nr7gCNznhAaiGp4LhtCPoXsIUjsQHwO2hmskW670gZGIZl7BvqVbN5mIwqOYF3ZsCUkR83pM7jSIsOMdiaLK5ZlVLG+z5AfgoPNDZo8iYiqTncIiSUL5oJuh2NIeiG+nwcPJV";
+    // Phone constants
+    // TODO: This location and rotation is imaginary, but should at least be close.
+    public static final float[] PHONE_LOCATION = {BOT_WIDTH / 2, 0, 0};
+    public static final float[] PHONE_ROTATION = {-90, 0, 0};
+    public static final AxesOrder PHONE_AXES_ORDER = AxesOrder.YZY;
+
+    // Tracking targets
+    public static final String TARGETS_FILE = "FTC_2016-17";
+    public static final int TARGETS_NUM = 4;
+    public static final float[] TARGETS_ROTATION_RED = {90, 90, 0};
+    public static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
+    public static final float[] TARGETS_OFFSET_RED = {250, 0, 0};
+    public static final float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
+    // TODO: These locations are imaginary. We need to find the real ones before navigation.
+    public static final Target[] CONFIG = {new Target(
+            "Wheels",
+            new float[]{-FIELD_WIDTH / 2, 0, 0},
+            TARGETS_OFFSET_RED,
+            TARGETS_ROTATION_RED
+    ), new Target(
+            "Tools",
+            new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0},
+            TARGETS_OFFSET_RED,
+            TARGETS_ROTATION_RED
+    ), new Target(
+            "LEGO",
+            new float[]{0, FIELD_WIDTH / 2, 0},
+            TARGETS_OFFSET_BLUE,
+            TARGETS_ROTATION_BLUE
+    ), new Target(
+            "Gears",
+            new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0},
+            TARGETS_OFFSET_BLUE,
+            TARGETS_ROTATION_BLUE
+    )};
+
+    // Driving constants
+    private final float ENCODER_PER_MM = 1.0f;
+    private final int DRIVE_MAX_TURN = 15;
 
     // Dynamic things we need to remember
     private VuforiaTrackables TARGETS_RAW = null;
@@ -96,6 +154,7 @@ public class VuforiaTest extends TankOpMode {
     private final int[] orientation = new int[3];
     private final HashMap<String, Boolean> targetVisible = new HashMap<>();
     private final HashMap<String, Integer> targetAngle = new HashMap<>();
+    private final HashMap<String, Integer> targetIndex = new HashMap<>();
 
     // Tank Drive constructor
     @SuppressWarnings("unused")
@@ -134,18 +193,21 @@ public class VuforiaTest extends TankOpMode {
          */
         TARGETS_RAW = vuforia.loadTrackablesFromAsset(TARGETS_FILE);
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, TARGETS_NUM);
-
-        // Name and locate the targets
-        // TODO: These locations are imaginary. We need to find the real ones before navigation.
-        initTrackable(TARGETS_RAW, 0, "Wheels", new float[]{-FIELD_WIDTH / 2, 0, 0}, TARGETS_ROTATION_RED);
-        initTrackable(TARGETS_RAW, 1, "Tools", new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0}, TARGETS_ROTATION_RED);
-        initTrackable(TARGETS_RAW, 2, "LEGO", new float[]{0, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
-        initTrackable(TARGETS_RAW, 3, "Gears", new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0}, TARGETS_ROTATION_BLUE);
         TARGETS.addAll(TARGETS_RAW);
 
-        // Position and rotation of the image sensor plane relative to the robot
-        // TODO: This location and pose may also be imaginary, but should at least be close.
-        OpenGLMatrix phoneLocation = positionRotationMatrix(new float[]{BOT_WIDTH / 2, 0, 0}, new float[]{-90, 0, 0}, AxesOrder.YZY);
+        // Configure target names, locations, rotations and hashMaps
+        for (int i = 0; i < TARGETS_NUM; i++) {
+            initTrackable(TARGETS_RAW, i);
+        }
+        for (VuforiaTrackable trackable : TARGETS) {
+            targetVisible.put(trackable.getName(), false);
+        }
+        for (VuforiaTrackable trackable : TARGETS) {
+            targetAngle.put(trackable.getName(), 0);
+        }
+
+        // Location and rotation of the image sensor plane relative to the robot
+        OpenGLMatrix phoneLocation = positionRotationMatrix(PHONE_LOCATION, PHONE_ROTATION, PHONE_AXES_ORDER);
         for (VuforiaTrackable trackable : TARGETS) {
             ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(phoneLocation, parameters.cameraDirection);
         }
@@ -165,12 +227,6 @@ public class VuforiaTest extends TankOpMode {
 
         // Start Vuforia tracking
         TARGETS_RAW.activate();
-        for (VuforiaTrackable trackable : TARGETS) {
-            targetVisible.put(trackable.getName(), false);
-        }
-        for (VuforiaTrackable trackable : TARGETS) {
-            targetAngle.put(trackable.getName(), 0);
-        }
     }
 
     @Override
@@ -183,35 +239,42 @@ public class VuforiaTest extends TankOpMode {
         // Update our location and pose
         doTracking();
 
-        // TODO: Presumably automated driving of some sort
-
-        // Feedback to the DS
+        // Standard (driver) feedback to the DS
         if (DISPLAY_STD) {
-            telemetry.addData("Valid", isStale() ? "No" : "Yes");
+            doStandardDisplay();
+        }
 
-            String visibleStr = "";
+        // Bearing debug
+        if (DISPLAY_BEARING && !isStale()) {
+            doBearingDebug();
+        }
+
+        // Turn to face the first visible target and drive half the distance toward it
+        if (gamepad1.y && !isStale()) {
+            boolean valid = false;
+            int index = 0;
+            int angle = 0;
+
+            // Get data for the first visible target
             for (String target : targetVisible.keySet()) {
                 if (getVisible(target)) {
-                    if (!visibleStr.isEmpty()) {
-                        visibleStr += ", ";
+                    angle = getTargetAngle(target);
+                    index = getTargetIndex(target);
+                    if (Math.abs(angle) < DRIVE_MAX_TURN) {
+                        valid = true;
+                        break;
                     }
-                    visibleStr += target;
-                }
-            }
-            if (visibleStr.isEmpty()) {
-                visibleStr = "<None>";
-            }
-            telemetry.addData("Visible", visibleStr);
-
-            for (String target : targetVisible.keySet()) {
-                if (getVisible(target)) {
-                    telemetry.addData(target + " ∠", getTargetAngle(target) + "°");
                 }
             }
 
-            telemetry.addData("X/Y Heading", getX() + "/" + getY() + " " + getHeading() + "°");
-            if (getTimestamp() > 0) {
-                telemetry.addData("Age", "%.2f", (System.currentTimeMillis() - getTimestamp()) / MILLS_PER_SEC);
+            // Drive if we found something useful
+            if (valid) {
+                int distance = distance(CONFIG[index].adjusted[0],
+                        CONFIG[index].adjusted[1]);
+                int ticks = (int)(distance * ENCODER_PER_MM);
+                ticks /= 2;
+
+                // TODO: Something that makes us turn <angle> degrees and then drive <ticks> encoder ticks
             }
         }
 
@@ -232,19 +295,7 @@ public class VuforiaTest extends TankOpMode {
                 targetAngle.put(trackable.getName(), (int) poseOrientation.secondAngle);
 
                 if (DISPLAY_TARGET) {
-                    telemetry.setAutoClear(false);
-                    telemetry.clearAll();
-
-                    telemetry.addData("Pose", trackable.getName());
-                    for (int i = 0; i < newPose.numRows(); i++) {
-                        for (int j = 0; j < newPose.numCols(); j++) {
-                            telemetry.addData("Pose[" + i + "][" + j + "]", newPose.get(i, j));
-                        }
-                    }
-
-                    telemetry.addData("PoseRot0", poseOrientation.firstAngle);
-                    telemetry.addData("PoseRot1", poseOrientation.secondAngle);
-                    telemetry.addData("PoseRot2", poseOrientation.thirdAngle);
+                    doTargetDebug(trackable, newPose, poseOrientation);
                 }
             }
 
@@ -295,6 +346,70 @@ public class VuforiaTest extends TankOpMode {
         }
     }
 
+    private void doStandardDisplay() {
+        // Is the location track valid?
+        telemetry.addData("Valid", isStale() ? "No" : "Yes");
+
+        // List of visible targets (if any)
+        String visibleStr = "";
+        for (String target : targetVisible.keySet()) {
+            if (getVisible(target)) {
+                if (!visibleStr.isEmpty()) {
+                    visibleStr += ", ";
+                }
+                visibleStr += target;
+            }
+        }
+        if (visibleStr.isEmpty()) {
+            visibleStr = "<None>";
+        }
+        telemetry.addData("Visible", visibleStr);
+
+        // Angle to each visible target (if any)
+        for (String target : targetVisible.keySet()) {
+            if (getVisible(target)) {
+                telemetry.addData(target + " ∠", getTargetAngle(target) + "°");
+            }
+        }
+
+        // Raw data from the last location and orientation fix
+        telemetry.addData("X/Y Heading", getX() + "/" + getY() + " " + getHeading() + "°");
+        if (getTimestamp() > 0) {
+            telemetry.addData("Age", "%.2f", (System.currentTimeMillis() - getTimestamp()) / MILLS_PER_SEC);
+        }
+    }
+
+
+    private void doTargetDebug(VuforiaTrackable trackable, OpenGLMatrix newPose, Orientation poseOrientation) {
+        telemetry.setAutoClear(false);
+        telemetry.clearAll();
+
+        telemetry.addData("Pose", trackable.getName());
+        for (int i = 0; i < newPose.numRows(); i++) {
+            for (int j = 0; j < newPose.numCols(); j++) {
+                telemetry.addData("Pose[" + i + "][" + j + "]", newPose.get(i, j));
+            }
+        }
+
+        telemetry.addData("PoseRot0", poseOrientation.firstAngle);
+        telemetry.addData("PoseRot1", poseOrientation.secondAngle);
+        telemetry.addData("PoseRot2", poseOrientation.thirdAngle);
+    }
+
+    // Bearing to various points on the field with respect to field north (if location is valid)
+   private void doBearingDebug() {
+        telemetry.addData("Field Center", distance(0, 0) + "mm @ " + bearing(0, 0) + "°");
+        for (int i = 0; i < TARGETS_NUM; i++) {
+            telemetry.addData(CONFIG[i].name,
+                    distance(CONFIG[i].adjusted[0], CONFIG[i].adjusted[1])
+                            + "mm @ " +
+                            bearing(CONFIG[i].adjusted[0], CONFIG[i].adjusted[1]) +
+                            "° (" +
+                            CONFIG[i].adjusted[0] + ", " +
+                            CONFIG[i].adjusted[1] + ")");
+        }
+    }
+
     /**
      * Getters
      */
@@ -303,7 +418,6 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
-     *
      * @param target Name of the target of interest.
      * @return True if the target was actively tracked in the last round of Vuforia processing
      */
@@ -316,9 +430,8 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
-     *
      * @param target Name of the target of interest. Valid targets will also be visible per
-     * {@link #getVisible(String)} getVisible(target)}
+     *               {@link #getVisible(String)} getVisible(target)}
      * @return The angle to the target's plane relative to the plane of the phone's image sensor
      * (i.e. 0° is dead-on, negative sign denotes right-of-center)
      */
@@ -327,7 +440,14 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
-     *
+     * @param target Name of the target of interest.
+     * @return The Vuforia targetable index for the named target.
+     */
+    public int getTargetIndex(String target) {
+        return targetIndex.get(target);
+    }
+
+    /**
      * @return System.currentTimeMillis() as reported at the time of the last location update
      */
     public long getTimestamp() {
@@ -335,7 +455,6 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
-     *
      * @return True when the last location update was more than TRACKING_TIMOEUT milliseconds ago
      */
     public boolean isStale() {
@@ -351,10 +470,9 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
-     *
      * @return The X component of the robot's last known location relative to the field center.
      * Negative values denote blue alliance side of field.
-     *
+     * <p>
      * This value may be out-of-date. Most uses should include an evaluation of validity based on
      * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
      */
@@ -363,10 +481,9 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
-     *
      * @return The Y component of the robot's last known location relative to the field center.
      * Negative sign denotes audiance side of field.
-     *
+     * <p>
      * This value may be out-of-date. Most uses should include an evaluation of validity based on
      * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
      */
@@ -375,9 +492,8 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
-     *
      * @return The robot's last known heading relative to the field.
-     *
+     * <p>
      * This value may be out-of-date. Most uses should include an evaluation of validity based on
      * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
      */
@@ -392,10 +508,48 @@ public class VuforiaTest extends TankOpMode {
         return heading;
     }
 
+    /**
+     * @param x X component of destination in the field plane
+     * @param y Y component of destination in the field plane
+     * @return Bearing from the current location to {x,y} with respect to field north
+     * <p>
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
+    public int bearing(int x, int y) {
+        return (int) bearing(new double[]{getX(), getY()}, new double[]{x, y});
+    }
+
+    /**
+     * @param x X component of destination in the field plane
+     * @param y Y component of destination in the field plane
+     * @return Distance from the current location to {x,y} with respect to field units (millimeters)
+     * <p>
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
+    public int distance(int x, int y) {
+        return (int) distance(new double[]{getX(), getY()}, new double[]{x, y});
+    }
 
     /**
      * Helpers
      */
+
+    // Bearing from x1,y1 to x2,y2 in degrees
+    // Motion from south to north is correlated with increasing Y components in field locations
+    private double bearing(double[] src, double[] dest) {
+        double bearing = Math.atan2(dest[1] - src[1], dest[0] - src[0]);
+        if (bearing < 0) {
+            bearing += Math.PI * 2.0;
+        }
+        return Math.toDegrees(bearing);
+    }
+
+    // Distance from x1,y1 to x2,y2 in field location units (millimeters)
+    private double distance(double[] src, double[] dest) {
+        return Math.hypot((dest[1] - src[1]), (dest[0] - src[0]));
+    }
 
     // It's like a macro, but for Java
     private OpenGLMatrix positionRotationMatrix(float[] position, float[] rotation, AxesOrder order) {
@@ -407,15 +561,22 @@ public class VuforiaTest extends TankOpMode {
     }
 
     // More Java blasphemy
-    private void initTrackable(VuforiaTrackables trackables, int index, String name, float[] position, float[] rotation) {
+    private void initTrackable(VuforiaTrackables trackables, int index) {
         if (index >= trackables.size() || index < 0) {
-            RobotLog.a("Invalid Vuforia trackable index (%d) for target: %s", index, name);
+            RobotLog.a("Invalid Vuforia trackable index: %d", index);
             return;
         }
 
+        // Per-target hashmaps, by name
+        targetIndex.put(CONFIG[index].name, index);
+        targetVisible.put(CONFIG[index].name, false);
+        targetAngle.put(CONFIG[index].name, 0);
+
+        // Location model parameters
         VuforiaTrackable trackable = trackables.get(index);
-        trackable.setName(name);
-        OpenGLMatrix location = positionRotationMatrix(position, rotation, AxesOrder.XZX);
+        trackable.setName(CONFIG[index].name);
+        OpenGLMatrix location = positionRotationMatrix(CONFIG[index].raw,
+                CONFIG[index].rotation, CONFIG[index].axesOrder);
         trackable.setLocation(location);
     }
 }
