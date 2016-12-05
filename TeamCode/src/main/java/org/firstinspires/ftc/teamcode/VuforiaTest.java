@@ -302,6 +302,11 @@ public class VuforiaTest extends TankOpMode {
         return targetVisible;
     }
 
+    /**
+     *
+     * @param target Name of the target of interest.
+     * @return True if the target was actively tracked in the last round of Vuforia processing
+     */
     public boolean getVisible(String target) {
         return targetVisible.get(target);
     }
@@ -310,14 +315,29 @@ public class VuforiaTest extends TankOpMode {
         return targetAngle;
     }
 
+    /**
+     *
+     * @param target Name of the target of interest. Valid targets will also be visible per
+     * {@link #getVisible(String)} getVisible(target)}
+     * @return The angle to the target's plane relative to the plane of the phone's image sensor
+     * (i.e. 0° is dead-on, negative sign denotes right-of-center)
+     */
     public int getTargetAngle(String target) {
         return targetAngle.get(target);
     }
 
+    /**
+     *
+     * @return System.currentTimeMillis() as reported at the time of the last location update
+     */
     public long getTimestamp() {
         return timestamp;
     }
 
+    /**
+     *
+     * @return True when the last location update was more than TRACKING_TIMOEUT milliseconds ago
+     */
     public boolean isStale() {
         return (timestamp + TRACKING_TIMEOUT < System.currentTimeMillis());
     }
@@ -330,14 +350,37 @@ public class VuforiaTest extends TankOpMode {
         return orientation;
     }
 
+    /**
+     *
+     * @return The X component of the robot's last known location relative to the field center.
+     * Negative values denote blue alliance side of field.
+     *
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
     public int getX() {
         return location[0];
     }
 
+    /**
+     *
+     * @return The Y component of the robot's last known location relative to the field center.
+     * Negative sign denotes audiance side of field.
+     *
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
     public int getY() {
         return location[1];
     }
 
+    /**
+     *
+     * @return The robot's last known heading relative to the field.
+     *
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
     public int getHeading() {
         int heading = orientation[2];
         if (orientation[0] < 0) {
@@ -346,7 +389,6 @@ public class VuforiaTest extends TankOpMode {
         if (heading < 0) {
             heading += FULL_CIRCLE;
         }
-        heading %= FULL_CIRCLE;
         return heading;
     }
 
