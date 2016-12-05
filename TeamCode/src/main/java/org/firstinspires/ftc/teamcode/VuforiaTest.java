@@ -70,7 +70,7 @@ class Target {
         this.axesOrder = AxesOrder.XZX;
 
         for (int i = 0; i < 3; i++) {
-            this.adjusted[i] = (int)(location[i] + offset[i]);
+            this.adjusted[i] = (int) (location[i] + offset[i]);
         }
     }
 }
@@ -107,17 +107,17 @@ public class VuforiaTest extends TankOpMode {
     // TODO: This location and rotation is imaginary, but should at least be close.
     public static final float[] PHONE_LOCATION = {BOT_WIDTH / 2, 0, 0};
     public static final float[] PHONE_ROTATION = {-90, 0, 0};
-    public static final AxesOrder PHONE_AXES_ORDER = AxesOrder.YZY;
+    private static final AxesOrder PHONE_AXES_ORDER = AxesOrder.YZY;
 
     // Tracking targets
     public static final String TARGETS_FILE = "FTC_2016-17";
     public static final int TARGETS_NUM = 4;
-    public static final float[] TARGETS_ROTATION_RED = {90, 90, 0};
-    public static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
-    public static final float[] TARGETS_OFFSET_RED = {250, 0, 0};
-    public static final float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
     // TODO: These locations are imaginary. We need to find the real ones before navigation.
-    public static final Target[] CONFIG = {new Target(
+    private static final float[] TARGETS_ROTATION_RED = {90, 90, 0};
+    private static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
+    private static final float[] TARGETS_OFFSET_RED = {250, 0, 0};
+    private static final float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
+    private static final Target[] CONFIG = {new Target(
             "Wheels",
             new float[]{-FIELD_WIDTH / 2, 0, 0},
             TARGETS_OFFSET_RED,
@@ -195,15 +195,9 @@ public class VuforiaTest extends TankOpMode {
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, TARGETS_NUM);
         TARGETS.addAll(TARGETS_RAW);
 
-        // Configure target names, locations, rotations and hashMaps
+        // Configure target names, locations, rotations and hashmaps
         for (int i = 0; i < TARGETS_NUM; i++) {
             initTrackable(TARGETS_RAW, i);
-        }
-        for (VuforiaTrackable trackable : TARGETS) {
-            targetVisible.put(trackable.getName(), false);
-        }
-        for (VuforiaTrackable trackable : TARGETS) {
-            targetAngle.put(trackable.getName(), 0);
         }
 
         // Location and rotation of the image sensor plane relative to the robot
@@ -252,37 +246,36 @@ public class VuforiaTest extends TankOpMode {
         // Turn to face the first visible target and drive half the distance toward it
         if (gamepad1.y && !isStale()) {
             boolean valid = false;
-            int index = 0;
-            int angle = 0;
+            int bearing = 0;
+            int distance = 0;
 
             // Get data for the first visible target
             for (String target : targetVisible.keySet()) {
                 if (getVisible(target)) {
-                    angle = getTargetAngle(target);
-                    index = getTargetIndex(target);
-                    if (Math.abs(angle) < DRIVE_MAX_TURN) {
-                        valid = true;
-                        break;
-                    }
+                    int index = getTargetIndex(target);
+                    bearing = bearing(index);
+                    distance = distance(index);
+                    valid = true;
+                    break;
                 }
             }
 
-            // Drive if we found something useful
+            // If we're tracking a target
             if (valid) {
-                int distance = distance(CONFIG[index].adjusted[0],
-                        CONFIG[index].adjusted[1]);
-                int ticks = (int)(distance * ENCODER_PER_MM);
-                ticks /= 2;
+                int ticks = (int) (distance * ENCODER_PER_MM) / 2;
+                int angle = getHeading() - bearing;
 
-                // TODO: Something that makes us turn <angle> degrees and then drive <ticks> encoder ticks
+                // Drive only if the turn is likely to keep us at a tracking angle
+                if (Math.abs(angle) < DRIVE_MAX_TURN) {
+                    // TODO: Something that makes us turn <angle> degrees and then drive <ticks> encoder ticks
+                }
             }
-        }
 
-        // Loop invariants
-        telemetry.update();
+            // Loop invariants
+            telemetry.update();
+        }
     }
 
-    // TODO: Consider spawning a thread for this loop (if allowed by the framework)
     private void doTracking() {
         for (VuforiaTrackable trackable : TARGETS) {
             // Per-target visibility (somewhat imaginary but still useful)
@@ -397,14 +390,11 @@ public class VuforiaTest extends TankOpMode {
     }
 
     // Bearing to various points on the field with respect to field north (if location is valid)
-   private void doBearingDebug() {
+    private void doBearingDebug() {
         telemetry.addData("Field Center", distance(0, 0) + "mm @ " + bearing(0, 0) + "°");
         for (int i = 0; i < TARGETS_NUM; i++) {
             telemetry.addData(CONFIG[i].name,
-                    distance(CONFIG[i].adjusted[0], CONFIG[i].adjusted[1])
-                            + "mm @ " +
-                            bearing(CONFIG[i].adjusted[0], CONFIG[i].adjusted[1]) +
-                            "° (" +
+                    distance(i) + "mm @ " + bearing(i) + "° (" +
                             CONFIG[i].adjusted[0] + ", " +
                             CONFIG[i].adjusted[1] + ")");
         }
@@ -521,6 +511,17 @@ public class VuforiaTest extends TankOpMode {
     }
 
     /**
+     * @param index CONFIG index. Syntax helper for {@link #bearing(int, int)} bearing(int, int)}
+     * @return Bearing from the current location to {x,y} with respect to field north
+     * <p>
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
+    private int bearing(int index) {
+        return bearing(CONFIG[index].adjusted[0], CONFIG[index].adjusted[1]);
+    }
+
+    /**
      * @param x X component of destination in the field plane
      * @param y Y component of destination in the field plane
      * @return Distance from the current location to {x,y} with respect to field units (millimeters)
@@ -530,6 +531,17 @@ public class VuforiaTest extends TankOpMode {
      */
     public int distance(int x, int y) {
         return (int) distance(new double[]{getX(), getY()}, new double[]{x, y});
+    }
+
+    /**
+     * @param index CONFIG index. Syntax helper for {@link #distance(int, int)} distance(int, int)}
+     * @return Distance from the current location to {x,y} with respect to field units (millimeters)
+     * <p>
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
+    private int distance(int index) {
+        return distance(CONFIG[index].adjusted[0], CONFIG[index].adjusted[1]);
     }
 
     /**
