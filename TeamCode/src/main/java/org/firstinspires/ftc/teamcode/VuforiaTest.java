@@ -113,30 +113,32 @@ public class VuforiaTest extends TankOpMode {
     public static final String TARGETS_FILE = "FTC_2016-17";
     public static final int TARGETS_NUM = 4;
     // TODO: These locations are imaginary. We need to find the real ones before navigation.
-    private static final float[] TARGETS_ROTATION_RED = {90, 90, 0};
-    private static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
+    private static final float[] TARGETS_ROTATION_RED = {270, 180, 0};
+    private static final float[] TARGETS_ROTATION_BLUE = {270, 270, 0};
     private static final float[] TARGETS_OFFSET_RED = {250, 0, 0};
     private static final float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
+    private static final float TARGETS_Y_BLUE = FIELD_WIDTH / 2;
+    private static final float TARGETS_X_RED = FIELD_WIDTH / 2;
     private static final Target[] CONFIG = {new Target(
             "Wheels",
-            new float[]{-FIELD_WIDTH / 2, 0, 0},
-            TARGETS_OFFSET_RED,
-            TARGETS_ROTATION_RED
+            new float[]{100, TARGETS_Y_BLUE, 0},
+            TARGETS_OFFSET_BLUE,
+            TARGETS_ROTATION_BLUE
     ), new Target(
             "Tools",
-            new float[]{-FIELD_WIDTH / 2, FIELD_WIDTH / 4, 0},
+            new float[]{TARGETS_X_RED, 600, 0},
             TARGETS_OFFSET_RED,
             TARGETS_ROTATION_RED
     ), new Target(
             "LEGO",
-            new float[]{0, FIELD_WIDTH / 2, 0},
+            new float[]{-600, TARGETS_Y_BLUE, 0},
             TARGETS_OFFSET_BLUE,
             TARGETS_ROTATION_BLUE
     ), new Target(
             "Gears",
-            new float[]{FIELD_WIDTH / 4, FIELD_WIDTH / 2, 0},
-            TARGETS_OFFSET_BLUE,
-            TARGETS_ROTATION_BLUE
+            new float[]{TARGETS_X_RED, -100, 0},
+            TARGETS_OFFSET_RED,
+            TARGETS_ROTATION_RED
     )};
 
     // Driving constants
