@@ -22,8 +22,8 @@ public class OneSixTeleOp extends TankOpMode {
     public static final double MAX_BOOPER_OUT = 0.35;
     public static final double BOOPER_CALIBRATE = 0.43;
     public static final double BOOPER_INCR = 0.005;
-    public static final double BLOCKER_UP = 0.98;
-    public static final double BLOCKER_DOWN = 0.17;
+    public static final double BLOCKER_UP = 0.0;
+    public static final double BLOCKER_DOWN = 0.98;
     public static final double COLLECTOR_IN = 1.0;
     public static final double SHOOTER_SPEED = 1.0;
     public static final int SHOOTER_INCR = 3700;
@@ -135,6 +135,16 @@ public class OneSixTeleOp extends TankOpMode {
             setLeftBooperPosition(BOOPER_CALIBRATE);
             setRightBooperPosition(BOOPER_CALIBRATE);
         }
+    }
+
+    public float moderateMotorPower(float motorPower) {
+        float power = super.moderateMotorPower(motorPower);
+
+        if(gamepad1.y) {
+            power /= 2;
+        }
+
+        return power;
     }
 
     public void setLeftBooperPosition(double position) {

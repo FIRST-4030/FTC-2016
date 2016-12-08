@@ -22,8 +22,8 @@ public class DriveForwardAutoWiggle extends LinearOpMode {
     private static final int BALL_INCR = -1100;
     public static final int SHOOTER_INCR = 3700;
     public static final double SHOOTER_SPEED = 1.0;
-    public static final double BLOCKER_UP = 0.98;
-    public static final double BLOCKER_DOWN = 0.20;
+    public static final double BLOCKER_UP = 0.0;
+    public static final double BLOCKER_DOWN = 0.98;
 
     /**
      * Override this method and place your code here.
