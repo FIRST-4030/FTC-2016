@@ -23,6 +23,7 @@ public class DriveForwardAuto extends LinearOpMode {
     public static final double SHOOTER_SPEED = 1.0;
     public static final double BLOCKER_UP = 0.0;
     public static final double BLOCKER_DOWN = 0.98;
+    public static final int NUM_SHOTS = 2;
 
     /**
      * Override this method and place your code here.
@@ -61,7 +62,7 @@ public class DriveForwardAuto extends LinearOpMode {
         telemetry.update();
         idle();
 
-        for(int i = 0; i < 2; i++) {
+        for(int i = 0; i < NUM_SHOTS; i++) {
             int shooterGoal = shooterMotor.getCurrentPosition() + SHOOTER_INCR;
             while(shooterMotor.getCurrentPosition() < shooterGoal) {
                 blocker.setPosition(BLOCKER_UP);
@@ -73,6 +74,14 @@ public class DriveForwardAuto extends LinearOpMode {
             blocker.setPosition(BLOCKER_DOWN);
             telemetry.update();
             idle();
+
+            // Wait for the next ball to drop
+            if (i < NUM_SHOTS - 1) {
+                long end = System.currentTimeMillis() + 1000;
+                while (end > System.currentTimeMillis()) {
+                    idle();
+                }
+            }
         }
 
         trueGoal = leftMotor.getCurrentPosition() + BALL_INCR;
