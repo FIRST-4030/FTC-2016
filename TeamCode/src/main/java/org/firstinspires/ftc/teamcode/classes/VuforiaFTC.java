@@ -76,9 +76,9 @@ public class VuforiaFTC {
     private final VuforiaTarget CONFIG_PHONE;
 
     // Dynamic things we need to remember
-    private int TRACKING_TIMEOUT = 500;
-    private VuforiaTrackables TARGETS_RAW = null;
-    private final List<VuforiaTrackable> TARGETS = new ArrayList<>();
+    private int trackingTimeout = 500;
+    private VuforiaTrackables targetsRaw = null;
+    private final List<VuforiaTrackable> targets = new ArrayList<>();
 
     // The actual data we care about
     private long timestamp = 0;
@@ -106,28 +106,28 @@ public class VuforiaFTC {
          * Pre-processed target images from the Vuforia target manager:
          * https://developer.vuforia.com/target-manager.
          */
-        TARGETS_RAW = vuforia.loadTrackablesFromAsset(CONFIG_ASSET);
+        targetsRaw = vuforia.loadTrackablesFromAsset(CONFIG_ASSET);
         com.vuforia.Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, CONFIG_TARGETS_NUM);
-        TARGETS.addAll(TARGETS_RAW);
+        targets.addAll(targetsRaw);
 
         // Configure target names, locations, rotations and hashmaps
         for (int i = 0; i < CONFIG_TARGETS_NUM; i++) {
-            initTrackable(TARGETS_RAW, i);
+            initTrackable(targetsRaw, i);
         }
 
         // Location and rotation of the image sensor plane relative to the robot
         OpenGLMatrix phoneLocation = positionRotationMatrix(CONFIG_PHONE.raw, CONFIG_PHONE.rotation, CONFIG_PHONE.axesOrder);
-        for (VuforiaTrackable trackable : TARGETS) {
+        for (VuforiaTrackable trackable : targets) {
             ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(phoneLocation, parameters.cameraDirection);
         }
     }
 
     public void start() {
-        TARGETS_RAW.activate();
+        targetsRaw.activate();
     }
 
     public void track() {
-        for (VuforiaTrackable trackable : TARGETS) {
+        for (VuforiaTrackable trackable : targets) {
             // Per-target visibility (somewhat imaginary but still useful)
             targetVisible.put(trackable.getName(), ((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible());
 
@@ -232,7 +232,7 @@ public class VuforiaFTC {
 
     /**
      * @param target Name of the target of interest.
-     * @return The VuforiaFTC targetable index for the named target.
+     * @return The Vuforia targetable index for the named target.
      */
     public int getTargetIndex(String target) {
         return targetIndex.get(target);
@@ -246,10 +246,10 @@ public class VuforiaFTC {
     }
 
     /**
-     * @return True when the last location update was more than TRACKING_TIMOEUT milliseconds ago
+     * @return True when the last location update was more than trackingTimeout milliseconds ago
      */
     public boolean isStale() {
-        return (timestamp + TRACKING_TIMEOUT < System.currentTimeMillis());
+        return (timestamp + trackingTimeout < System.currentTimeMillis());
     }
 
     public int[] getLocation() {
@@ -346,11 +346,11 @@ public class VuforiaFTC {
     }
 
     public void setTrackingTimeout(int timeout) {
-        TRACKING_TIMEOUT = timeout;
+        trackingTimeout = timeout;
     }
 
     public int getTrackingTimeout() {
-        return TRACKING_TIMEOUT;
+        return trackingTimeout;
     }
 
     /**

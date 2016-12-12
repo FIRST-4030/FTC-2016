@@ -61,8 +61,8 @@ public class VuforiaTest extends TankOpMode {
     private final int DRIVE_MAX_TURN = 15;
 
     // Dynamic things we need to remember
-    private boolean DISABLE_TELEOP = false;
-    private VuforiaFTC VUFORIA;
+    private boolean disableTeleop = false;
+    private VuforiaFTC vuforia;
 
     // Tank Drive constructor
     @SuppressWarnings("unused")
@@ -84,14 +84,14 @@ public class VuforiaTest extends TankOpMode {
             backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             backRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         } catch (Exception e) {
-            DISABLE_TELEOP = true;
+            disableTeleop = true;
             telemetry.log().add("ERROR: Unable to initalize motors");
             telemetry.update();
         }
 
         // Init Vuforia
-        VUFORIA = new VuforiaFTC(CONFIG_ASSET, CONFIG_TARGET_NUM, CONFIG, CONFIG_PHONE);
-        VUFORIA.init();
+        vuforia = new VuforiaFTC(CONFIG_ASSET, CONFIG_TARGET_NUM, CONFIG, CONFIG_PHONE);
+        vuforia.init();
 
         // Wait for the game to begin
         telemetry.addData(">", "Ready for game start");
@@ -107,32 +107,32 @@ public class VuforiaTest extends TankOpMode {
         telemetry.clearAll();
 
         // Start Vuforia tracking
-        VUFORIA.start();
+        vuforia.start();
     }
 
     @Override
     public void loop() {
         // Inherit TankDrive functionality (if enabled)
-        if (!DISABLE_TELEOP) {
+        if (!disableTeleop) {
             super.loop();
         }
 
         // Update our location and pose
-        VUFORIA.track();
-        VUFORIA.display(telemetry);
+        vuforia.track();
+        vuforia.display(telemetry);
 
         // Turn to face the first visible target and drive half the distance toward it
-        if (gamepad1.y && !VUFORIA.isStale()) {
+        if (gamepad1.y && !vuforia.isStale()) {
             boolean valid = false;
             int bearing = 0;
             int distance = 0;
 
             // Get data for the first visible target
-            for (String target : VUFORIA.getVisible().keySet()) {
-                if (VUFORIA.getVisible(target)) {
-                    int index = VUFORIA.getTargetIndex(target);
-                    bearing = VUFORIA.bearing(index);
-                    distance = VUFORIA.distance(index);
+            for (String target : vuforia.getVisible().keySet()) {
+                if (vuforia.getVisible(target)) {
+                    int index = vuforia.getTargetIndex(target);
+                    bearing = vuforia.bearing(index);
+                    distance = vuforia.distance(index);
                     valid = true;
                     break;
                 }
@@ -141,7 +141,7 @@ public class VuforiaTest extends TankOpMode {
             // If we're tracking a target
             if (valid) {
                 int ticks = (int) (distance * ENCODER_PER_MM) / 2;
-                int angle = VUFORIA.getHeading() - bearing;
+                int angle = vuforia.getHeading() - bearing;
 
                 // Drive only if the turn is likely to keep us at a tracking angle
                 if (Math.abs(angle) < DRIVE_MAX_TURN) {
