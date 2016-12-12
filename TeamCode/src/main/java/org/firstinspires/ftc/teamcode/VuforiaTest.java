@@ -39,10 +39,10 @@ import org.firstinspires.ftc.teamcode.classes.TankOpMode;
 import org.firstinspires.ftc.teamcode.classes.VuforiaFTC;
 import org.firstinspires.ftc.teamcode.classes.VuforiaTarget;
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "VuforiaFTC Test", group = "Test")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
 public class VuforiaTest extends TankOpMode {
 
-    public static final String TAG = "VuforiaFTC Test";
+    public static final String TAG = "Vuforia Test";
 
     // Field, camera and robot constants
     public static final float MM_PER_INCH = 25.4f;
@@ -50,13 +50,13 @@ public class VuforiaTest extends TankOpMode {
     public static final float FIELD_WIDTH = (12 * 12 - 2) * MM_PER_INCH;
 
     // Tracking config
-    public static final String TARGETS_FILE = "FTC_2016-17";
-    public static final int TARGETS_NUM = 4;
+    public static final String CONFIG_ASSET = "FTC_2016-17";
+    public static final int CONFIG_TARGET_NUM = 4;
     // TODO: This location and rotation is imaginary, but should at least be close.
     private static final VuforiaTarget CONFIG_PHONE = new VuforiaTarget(
             "Phone",
-            new float[] {BOT_WIDTH / 2, 0, 0},
-            new float[] {-90, 0, 0},
+            new float[]{BOT_WIDTH / 2, 0, 0},
+            new float[]{-90, 0, 0},
             AxesOrder.YZY
     );
     // TODO: These locations are imaginary. We need to find the real ones before navigation.
@@ -122,7 +122,7 @@ public class VuforiaTest extends TankOpMode {
         }
 
         // Init Vuforia
-        VUFORIA = new VuforiaFTC(TARGETS_FILE, TARGETS_NUM, CONFIG, CONFIG_PHONE);
+        VUFORIA = new VuforiaFTC(CONFIG_ASSET, CONFIG_TARGET_NUM, CONFIG, CONFIG_PHONE);
         VUFORIA.init();
 
         // Wait for the game to begin
