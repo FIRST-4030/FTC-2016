@@ -53,8 +53,11 @@ import java.util.HashMap;
 import java.util.List;
 
 public class VuforiaFTC {
-    // Team-specific VuforiaFTC key
-    // TODO: If you downloaded this file from another team you need to get your own VuforiaFTC key
+    /**
+     * TODO: If you downloaded this file from another team you need to get your own Vuforia key
+     * See https://library.vuforia.com/articles/Solution/How-To-Create-an-App-License for instructions
+     */
+    // Team-specific Vuforia key
     private static final String VUFORIA_KEY = "AbgpAh3/////AAAAGTwS0imaZU6wjVVHhw7cr1iHxcyPegw1+zPNzs+oNjtZlwpyvuwb2hdTLeEEj0gPTWUgVfLbnn6BrV6pafSnN8oCEEZrbVicTGw02BT+V0IzD43++kcsLVuumaM9yAUlAaDPiuEvEx6AZxYnM05KMzlAtMtfgW8tOIvjlicxep9tPhr1Z1Z3JrDt8s8mPo3GsSRSvpoSXZfxRLi0CwGEJlTuVrP59wLhsvr3CZ5Nr7gCNznhAaiGp4LhtCPoXsIUjsQHwO2hmskW670gZGIZl7BvqVbN5mIwqOYF3ZsCUkR83pM7jSIsOMdiaLK5ZlVLG+z5AfgoPNDZo8iYiqTncIiSUL5oJuh2NIeiG+nwcPJV";
 
     // Short names for external constants
@@ -93,14 +96,14 @@ public class VuforiaFTC {
     }
 
     public void init() {
-        // Init VuforiaFTC
+        // Init Vuforia
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(R.id.cameraMonitorViewId);
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
         parameters.cameraDirection = CAMERA_DIRECTION;
         VuforiaLocalizer vuforia = ClassFactory.createVuforiaLocalizer(parameters);
 
         /**
-         * Pre-processed target images from the VuforiaFTC target manager:
+         * Pre-processed target images from the Vuforia target manager:
          * https://developer.vuforia.com/target-manager.
          */
         TARGETS_RAW = vuforia.loadTrackablesFromAsset(CONFIG_ASSET);
