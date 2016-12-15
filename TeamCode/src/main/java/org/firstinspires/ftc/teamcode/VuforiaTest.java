@@ -14,8 +14,8 @@ public class VuforiaTest extends TankOpMode {
 
     // Field, camera and robot constants
     public static final float MM_PER_INCH = 25.4f;
-    public static final float BOT_WIDTH = 18 * MM_PER_INCH;
-    public static final float FIELD_WIDTH = (12 * 12 - 2) * MM_PER_INCH;
+    public static final int BOT_WIDTH = (int)(18 * MM_PER_INCH);
+    public static final int FIELD_WIDTH = (int)((12 * 12 - 2) * MM_PER_INCH);
 
     // Tracking config
     public static final String CONFIG_ASSET = "FTC_2016-17";
@@ -28,30 +28,32 @@ public class VuforiaTest extends TankOpMode {
             AxesOrder.YZY
     );
     // TODO: These locations are imaginary. We need to find the real ones before navigation.
-    private static final float[] TARGETS_ROTATION_RED = {270, 180, 0};
-    private static final float[] TARGETS_ROTATION_BLUE = {270, 270, 0};
+    private static final float[] TARGETS_ROTATION_RED = {-90, 270, 0};
+    private static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
     private static final float[] TARGETS_OFFSET_RED = {250, 0, 0};
     private static final float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
-    private static final float TARGETS_Y_BLUE = FIELD_WIDTH / 2;
-    private static final float TARGETS_X_RED = FIELD_WIDTH / 2;
+    private static final int TARGETS_Y_BLUE = FIELD_WIDTH / 2;
+    private static final int TARGETS_X_RED = -FIELD_WIDTH / 2;
+    private static final int TARGETS_OFFSET_NEAR = (int)(12 * MM_PER_INCH);
+    private static final int TARGETS_OFFSET_FAR = (int)(36 * MM_PER_INCH);
     private static final VuforiaTarget[] CONFIG = {new VuforiaTarget(
             "Wheels",
-            new float[]{100, TARGETS_Y_BLUE, 0},
+            new float[]{TARGETS_OFFSET_NEAR, TARGETS_Y_BLUE, 0},
             TARGETS_OFFSET_BLUE,
             TARGETS_ROTATION_BLUE
     ), new VuforiaTarget(
             "Tools",
-            new float[]{TARGETS_X_RED, 600, 0},
+            new float[]{TARGETS_X_RED, TARGETS_OFFSET_FAR, 0},
             TARGETS_OFFSET_RED,
             TARGETS_ROTATION_RED
     ), new VuforiaTarget(
             "LEGO",
-            new float[]{-600, TARGETS_Y_BLUE, 0},
+            new float[]{-TARGETS_OFFSET_FAR, TARGETS_Y_BLUE, 0},
             TARGETS_OFFSET_BLUE,
             TARGETS_ROTATION_BLUE
     ), new VuforiaTarget(
             "Gears",
-            new float[]{TARGETS_X_RED, -100, 0},
+            new float[]{TARGETS_X_RED, -TARGETS_OFFSET_NEAR, 0},
             TARGETS_OFFSET_RED,
             TARGETS_ROTATION_RED
     )};
