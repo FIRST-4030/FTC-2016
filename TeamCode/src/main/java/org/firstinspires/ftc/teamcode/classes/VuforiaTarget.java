@@ -29,8 +29,7 @@ public class VuforiaTarget {
 
         this.adjusted = new int[NUM_DIMENSIONS];
         for (int i = 0; i < NUM_DIMENSIONS; i++) {
-            assert offset != null;
-            this.adjusted[i] = (int) (location[i] + offset[i]);
+            this.adjusted[i] = (int) (this.raw[i] + this.offset[i]);
         }
     }
 
