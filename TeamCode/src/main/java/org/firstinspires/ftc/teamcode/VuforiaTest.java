@@ -1,21 +1,28 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.teamcode.classes.TankOpMode;
+import org.firstinspires.ftc.teamcode.classes.DriveTo;
+import org.firstinspires.ftc.teamcode.classes.DriveToComp;
+import org.firstinspires.ftc.teamcode.classes.DriveToListener;
+import org.firstinspires.ftc.teamcode.classes.DriveToParams;
+import org.firstinspires.ftc.teamcode.classes.Gyro;
+import org.firstinspires.ftc.teamcode.classes.MotorSide;
+import org.firstinspires.ftc.teamcode.classes.TankDrive;
+import org.firstinspires.ftc.teamcode.classes.TankMotor;
 import org.firstinspires.ftc.teamcode.classes.VuforiaFTC;
 import org.firstinspires.ftc.teamcode.classes.VuforiaTarget;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
-public class VuforiaTest extends TankOpMode {
+public class VuforiaTest extends OpMode implements DriveToListener {
 
     public static final String TAG = "Vuforia Test";
 
     // Field, camera and robot constants
     public static final float MM_PER_INCH = 25.4f;
-    public static final int BOT_WIDTH = (int)(18 * MM_PER_INCH);
-    public static final int FIELD_WIDTH = (int)((12 * 12 - 2) * MM_PER_INCH);
+    public static final int BOT_WIDTH = (int) (18 * MM_PER_INCH);
+    public static final int FIELD_WIDTH = (int) ((12 * 12 - 2) * MM_PER_INCH);
 
     // Tracking config
     public static final String CONFIG_ASSET = "FTC_2016-17";
@@ -34,8 +41,8 @@ public class VuforiaTest extends TankOpMode {
     private static final float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
     private static final int TARGETS_Y_BLUE = FIELD_WIDTH / 2;
     private static final int TARGETS_X_RED = -FIELD_WIDTH / 2;
-    private static final int TARGETS_OFFSET_NEAR = (int)(12 * MM_PER_INCH);
-    private static final int TARGETS_OFFSET_FAR = (int)(36 * MM_PER_INCH);
+    private static final int TARGETS_OFFSET_NEAR = (int) (12 * MM_PER_INCH);
+    private static final int TARGETS_OFFSET_FAR = (int) (36 * MM_PER_INCH);
     private static final VuforiaTarget[] CONFIG = {new VuforiaTarget(
             "Wheels",
             new float[]{TARGETS_OFFSET_NEAR, TARGETS_Y_BLUE, 0},
@@ -60,38 +67,47 @@ public class VuforiaTest extends TankOpMode {
 
     // Driving constants
     private final float ENCODER_PER_MM = 1.0f;
-    private final int DRIVE_MAX_TURN = 15;
 
     // Dynamic things we need to remember
-    private boolean disableTeleop = false;
     private VuforiaFTC vuforia;
+    private TankDrive tank;
+    private Gyro gyro;
+    private DriveTo drive;
 
-    // Tank Drive constructor
-    @SuppressWarnings("unused")
-    public VuforiaTest() {
-        super("front left", "front right", "back left", "back right");
+    // Sensor types for our DriveTo callbacks
+    enum SENSOR_TYPE {
+        GYRO, ENCODER
     }
 
     @Override
     public void init() {
 
         // Placate drivers; sometimes VuforiaFTC is slow to init
-        telemetry.addData(">", "Initalizing...");
+        telemetry.addData(">", "Initializing...");
         telemetry.update();
 
-        // Init Tank Drive
-        // Try/Catch to keep running even if we can't talk to the hardware
-        try {
-            super.init();
-            backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-            backRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        } catch (Exception e) {
-            disableTeleop = true;
-            telemetry.log().add("ERROR: Unable to initalize motors");
-            telemetry.update();
+        // Sensors
+        gyro = new Gyro(hardwareMap, "gyro");
+        if (!gyro.isAvailable()) {
+            telemetry.log().add("ERROR: Unable to initalize gyro");
         }
 
-        // Init Vuforia
+        // Drive motors
+        TankMotor motors[] = new TankMotor[4];
+        motors[0] = new TankMotor("fl", MotorSide.LEFT);
+        motors[1] = new TankMotor("fr", MotorSide.RIGHT, true);
+        motors[2] = new TankMotor("bl", MotorSide.LEFT, true);
+        motors[3] = new TankMotor("br", MotorSide.RIGHT);
+        tank = new TankDrive(hardwareMap, motors);
+        if (!tank.isAvailable()) {
+            // Note that we could retry with different names to support multiple configs/robots
+            telemetry.log().add("ERROR: Unable to initalize motors");
+        }
+
+        // Reduce speeds while testing
+        tank.setSpeedScale(0.5);
+
+        // Vuforia
         vuforia = new VuforiaFTC(CONFIG_ASSET, CONFIG_TARGET_NUM, CONFIG, CONFIG_PHONE);
         vuforia.init();
 
@@ -114,22 +130,35 @@ public class VuforiaTest extends TankOpMode {
 
     @Override
     public void loop() {
-        // Inherit TankDrive functionality (if enabled)
-        if (!disableTeleop) {
-            super.loop();
-        }
+        // Drive
+        tank.loop(gamepad1);
 
         // Update our location and pose
         vuforia.track();
+
+        // Driver feedback
+        if (!gyro.isReady()) {
+            telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d" + (int)time);
+        }
         vuforia.display(telemetry);
 
-        // Turn to face the first visible target and drive half the distance toward it
-        if (gamepad1.y && !vuforia.isStale()) {
-            boolean valid = false;
-            int bearing = 0;
-            int distance = 0;
+        // Handle DriveTo driving
+        if (drive != null) {
+            // Return to teleop when complete
+            if (drive.isStarted() && drive.isDone()) {
+                drive = null;
+                tank.setTeleop(true);
+            }
 
-            // Get data for the first visible target
+            // DriveTo
+            drive.drive();
+        }
+
+        // Collect data about the first visible target
+        boolean valid = false;
+        int bearing = 0;
+        int distance = 0;
+        if (!vuforia.isStale()) {
             for (String target : vuforia.getVisible().keySet()) {
                 if (vuforia.getVisible(target)) {
                     int index = vuforia.getTargetIndex(target);
@@ -139,20 +168,62 @@ public class VuforiaTest extends TankOpMode {
                     break;
                 }
             }
-
-            // If we're tracking a target
-            if (valid) {
-                int ticks = (int) (distance * ENCODER_PER_MM) / 2;
-                int angle = vuforia.getHeading() - bearing;
-
-                // Drive only if the turn is likely to keep us at a tracking angle
-                if (Math.abs(angle) < DRIVE_MAX_TURN) {
-                    // TODO: Something that makes us turn <angle> degrees and then drive <ticks> encoder ticks
-                }
-            }
-
-            // Loop invariants
-            telemetry.update();
         }
+
+        // Turn to face the first visible target
+        if (gamepad1.y && valid) {
+            tank.setTeleop(false);
+            DriveToParams param = new DriveToParams(this, SENSOR_TYPE.GYRO);
+
+            // Turn the short way
+            int delta = vuforia.getHeading() - bearing;
+            if (delta > 0) {
+                param.greaterThan(gyro.getHeading() + delta);
+            } else {
+                param.lessThan(gyro.getHeading() + delta);
+            }
+            drive = new DriveTo(new DriveToParams[]{param});
+        }
+
+        // Drive half the distance to the first visible target
+        if (gamepad1.x && valid) {
+            tank.setTeleop(false);
+            DriveToParams param = new DriveToParams(this, SENSOR_TYPE.ENCODER);
+            param.greaterThan(((float) distance * ENCODER_PER_MM) / 2);
+            drive = new DriveTo(new DriveToParams[]{param});
+        }
+
+        // Loop invariants
+        telemetry.update();
+    }
+
+    @Override
+    public void driveToStop(DriveToParams param) {
+        tank.stop();
+    }
+
+    @Override
+    public void driveToRun(DriveToParams param) {
+        if (param.reference.equals(SENSOR_TYPE.GYRO)) {
+            // Turning clockwise increases heading
+            if (param.comparator.equals(DriveToComp.GREATER)) {
+                tank.setSpeed(1.0, MotorSide.LEFT);
+                tank.setSpeed(-1.0, MotorSide.RIGHT);
+            } else {
+                tank.setSpeed(-1.0, MotorSide.LEFT);
+                tank.setSpeed(1.0, MotorSide.RIGHT);
+            }
+        } else {
+            // Always drive forward
+            tank.setSpeed(1.0);
+        }
+    }
+
+    @Override
+    public double driveToSensor(DriveToParams param) {
+        if (param.reference.equals(SENSOR_TYPE.GYRO)) {
+            return gyro.getHeading();
+        }
+        return tank.getEncoder();
     }
 }
