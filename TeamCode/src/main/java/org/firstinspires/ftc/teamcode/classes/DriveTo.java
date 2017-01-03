@@ -4,10 +4,10 @@ public class DriveTo {
 
     public static final int TIMEOUT_DEFAULT = 3000;
 
-    private boolean any;
+    private final boolean any;
     private boolean done;
     private long started = 0;
-    private DriveToParams[] params;
+    private final DriveToParams[] params;
 
     public DriveTo(DriveToParams[] params, boolean any) {
         this.any = any;
@@ -25,13 +25,13 @@ public class DriveTo {
     }
 
     public boolean isStarted() {
-        return (started > 0 ? true : false);
+        return (started > 0);
     }
 
     public boolean isTimeout() {
         long now = System.currentTimeMillis();
         for (DriveToParams param : params) {
-            if (started + param.timeout < System.currentTimeMillis()) {
+            if (started + param.timeout < now) {
                 return true;
             }
         }
@@ -50,13 +50,13 @@ public class DriveTo {
 
         if (stop) {
             for (DriveToParams param : params) {
-                param.parent.driveToStop(param.reference);
+                param.parent.driveToStop(param);
             }
             done = true;
         } else {
             done = false;
             for (DriveToParams param : params) {
-                param.parent.driveToRun(param.reference);
+                param.parent.driveToRun(param);
             }
         }
     }
@@ -64,7 +64,7 @@ public class DriveTo {
     private boolean onTarget() {
         for (DriveToParams param : params) {
             boolean onTarget = false;
-            double actual = param.parent.driveToSensor(param.reference);
+            double actual = param.parent.driveToSensor(param);
             switch (param.comparator) {
                 case LESS:
                     if (actual < param.limit1) {

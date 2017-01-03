@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode.classes;
 
 public interface DriveToListener {
-    public void driveToStop(Object object);
+    public void driveToStop(DriveToParams param);
 
-    public void driveToRun(Object object);
+    public void driveToRun(DriveToParams param);
 
-    public double driveToSensor(Object object);
+    public double driveToSensor(DriveToParams param);
 }

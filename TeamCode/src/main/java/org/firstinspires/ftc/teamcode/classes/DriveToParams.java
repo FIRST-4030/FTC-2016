@@ -4,15 +4,20 @@ public class DriveToParams {
     public double limit1;
     public double limit2;
     public DriveToComp comparator;
-    public DriveToListener parent;
-    public Object reference;
-    public int timeout;
+    public final DriveToListener parent;
+    public final Object reference;
+    public final int timeout;
 
     public DriveToParams(DriveToListener parent) {
+        this(parent, null);
+    }
+
+    public DriveToParams(DriveToListener parent, Object reference) {
         limit1 = 0.0f;
         limit2 = 0.0f;
         this.comparator = DriveToComp.LESS;
         this.parent = parent;
+        this.reference = reference;
         this.timeout = DriveTo.TIMEOUT_DEFAULT;
     }
 

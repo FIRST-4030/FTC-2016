@@ -12,12 +12,13 @@ public class TankDrive {
     private TankMotor[] motors = null;
     private boolean disabled = true;
     private boolean teleop = false;
+    private double speedScale = 1.0;
 
     public TankDrive(HardwareMap map, TankMotor[] motors) {
         this.teleop = false;
         try {
             if (motors.length < MIN_MOTORS) {
-                throw new ArrayIndexOutOfBoundsException("TankDrive must configure at least " + MIN_MOTORS + " motors");
+                throw new ArrayIndexOutOfBoundsException("TankDrive must configure at least " + MIN_MOTORS + " motors: " + motors.length);
             }
             this.motors = motors;
             for (TankMotor motor : this.motors) {
@@ -42,7 +43,7 @@ public class TankDrive {
             return 0;
         }
         if (index < 0 || index >= motors.length) {
-            throw new ArrayIndexOutOfBoundsException("Invalid TankMotors index");
+            throw new ArrayIndexOutOfBoundsException("Invalid TankMotors index: " + index);
         }
         return motors[index].motor.getCurrentPosition();
     }
@@ -60,7 +61,16 @@ public class TankDrive {
                 return motor.motor.getCurrentPosition();
             }
         }
-        throw new NoSuchElementException("Invalid TankMotors name");
+        throw new NoSuchElementException("Invalid TankMotors name: " + name);
+    }
+
+    public void setSpeed(double speed) {
+        if (isDisabled()) {
+            return;
+        }
+        for (TankMotor motor : motors) {
+            motor.motor.setPower(speed * speedScale);
+        }
     }
 
     public void setSpeed(double speed, String name) {
@@ -69,11 +79,11 @@ public class TankDrive {
         }
         for (TankMotor motor : motors) {
             if (motor.name.equals(name)) {
-                motor.motor.setPower(speed);
+                motor.motor.setPower(speed * speedScale);
                 return;
             }
         }
-        throw new NoSuchElementException("Invalid TankMotors name");
+        throw new NoSuchElementException("Invalid TankMotors name: " + name);
     }
 
     public void setSpeed(double speed, MotorSide side) {
@@ -82,7 +92,7 @@ public class TankDrive {
         }
         for (TankMotor motor : motors) {
             if (motor.side == side) {
-                motor.motor.setPower(speed);
+                motor.motor.setPower(speed * speedScale);
             }
         }
     }
@@ -110,6 +120,10 @@ public class TankDrive {
 
     public void setTeleop(boolean enabled) {
         this.teleop = enabled;
+    }
+
+    public void setSpeedScale(double scale) {
+        this.speedScale = scale;
     }
 
     public void loop(Gamepad pad) {
