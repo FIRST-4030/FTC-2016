@@ -4,12 +4,21 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import java.util.NoSuchElementException;
+
 public class TankDrive {
+    private static final int MIN_MOTORS = 2;
+
     private TankMotor[] motors = null;
     private boolean disabled = true;
+    private boolean teleop = false;
 
     public TankDrive(HardwareMap map, TankMotor[] motors) {
+        this.teleop = false;
         try {
+            if (motors.length < MIN_MOTORS) {
+                throw new ArrayIndexOutOfBoundsException("TankDrive must configure at least " + MIN_MOTORS + " motors");
+            }
             this.motors = motors;
             for (TankMotor motor : this.motors) {
                 motor.motor = map.dcMotor.get(motor.name);
@@ -28,6 +37,32 @@ public class TankDrive {
         return motors != null;
     }
 
+    public int getEncoder(int index) {
+        if (!isAvailable()) {
+            return 0;
+        }
+        if (index < 0 || index >= motors.length) {
+            throw new ArrayIndexOutOfBoundsException("Invalid TankMotors index");
+        }
+        return motors[index].motor.getCurrentPosition();
+    }
+
+    public int getEncoder() {
+        return getEncoder(0);
+    }
+
+    public int getEncoder(String name) {
+        if (!isAvailable()) {
+            return 0;
+        }
+        for (TankMotor motor : motors) {
+            if (motor.name.equals(name)) {
+                return motor.motor.getCurrentPosition();
+            }
+        }
+        throw new NoSuchElementException("Invalid TankMotors name");
+    }
+
     public void setSpeed(double speed, String name) {
         if (isDisabled()) {
             return;
@@ -35,8 +70,10 @@ public class TankDrive {
         for (TankMotor motor : motors) {
             if (motor.name.equals(name)) {
                 motor.motor.setPower(speed);
+                return;
             }
         }
+        throw new NoSuchElementException("Invalid TankMotors name");
     }
 
     public void setSpeed(double speed, MotorSide side) {
@@ -57,7 +94,7 @@ public class TankDrive {
     }
 
     public boolean isDisabled() {
-        return this.disabled;
+        return !isAvailable() || this.disabled;
     }
 
     public void setDisabled(boolean disabled) {
@@ -67,7 +104,19 @@ public class TankDrive {
         this.disabled = disabled;
     }
 
+    public boolean isTeleop() {
+        return this.teleop;
+    }
+
+    public void setTeleop(boolean enabled) {
+        this.teleop = enabled;
+    }
+
     public void loop(Gamepad pad) {
+        if (isDisabled() || !isTeleop()) {
+            return;
+        }
+
         float left = cleanJoystick(pad.left_stick_y);
         this.setSpeed(left, MotorSide.LEFT);
 
