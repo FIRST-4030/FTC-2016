@@ -44,8 +44,9 @@ public class Range {
     }
 
     public void setLED(boolean state) {
-        if (isAvailable()) {
-            range.enableLed(state);
+        if (!isAvailable()) {
+            return;
         }
+        range.enableLed(state);
     }
 }

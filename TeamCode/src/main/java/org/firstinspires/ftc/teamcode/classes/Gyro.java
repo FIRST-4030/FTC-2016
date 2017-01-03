@@ -30,9 +30,10 @@ public class Gyro {
     }
 
     public void reset() {
-        if (gyro != null) {
-            gyro.resetZAxisIntegrator();
+        if (!isAvailable()) {
+            return;
         }
+        gyro.resetZAxisIntegrator();
     }
 
     public int getHeading() {
