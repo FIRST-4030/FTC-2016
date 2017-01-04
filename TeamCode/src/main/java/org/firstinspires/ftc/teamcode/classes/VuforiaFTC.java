@@ -361,10 +361,8 @@ public class VuforiaFTC {
     // Motion from south to north is correlated with increasing Y components in field locations
     private double bearing(double[] src, double[] dest) {
         double bearing = Math.atan2(dest[1] - src[1], dest[0] - src[0]);
-        if (bearing < 0) {
-            bearing += Math.PI * 2.0;
-        }
-        return Math.toDegrees(bearing);
+        bearing = Math.toDegrees(bearing);
+        return (bearing + 360 + 180) % 360;
     }
 
     // Distance from x1,y1 to x2,y2 in field location units (millimeters)
