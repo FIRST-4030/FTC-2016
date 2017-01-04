@@ -23,6 +23,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
     public static final float MM_PER_INCH = 25.4f;
     public static final int BOT_WIDTH = (int) (18 * MM_PER_INCH);
     public static final int FIELD_WIDTH = (int) ((12 * 12 - 2) * MM_PER_INCH);
+    public static final int GYRO_MIN_UPDATE_INTERVAL = 500;
 
     // Tracking config
     public static final String CONFIG_ASSET = "FTC_2016-17";
@@ -73,6 +74,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
     private TankDrive tank;
     private Gyro gyro;
     private DriveTo drive;
+    private long lastHeadingSync;
 
     // Sensor types for our DriveTo callbacks
     enum SENSOR_TYPE {
@@ -130,15 +132,24 @@ public class VuforiaTest extends OpMode implements DriveToListener {
 
     @Override
     public void loop() {
+        // Avoid repeated system calls
+        long now = System.currentTimeMillis();
+
         // Drive
         tank.loop(gamepad1);
 
         // Update our location and pose
         vuforia.track();
 
+        // Update the gyro offset if we have a fix
+        if (!vuforia.isStale() && lastHeadingSync + GYRO_MIN_UPDATE_INTERVAL < now) {
+            lastHeadingSync = now;
+            gyro.setHeading(vuforia.getHeading());
+        }
+
         // Driver feedback
         if (!gyro.isReady()) {
-            telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d" + (int)time);
+            telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d" + (int) time);
         }
         vuforia.display(telemetry);
 
