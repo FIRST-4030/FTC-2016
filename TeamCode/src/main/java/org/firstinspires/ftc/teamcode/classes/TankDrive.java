@@ -109,7 +109,7 @@ public class TankDrive {
 
     public void setDisabled(boolean disabled) {
         if (!this.disabled && disabled) {
-            this.stop();
+            stop();
         }
         this.disabled = disabled;
     }
@@ -119,6 +119,9 @@ public class TankDrive {
     }
 
     public void setTeleop(boolean enabled) {
+        if (this.teleop != enabled) {
+            stop();
+        }
         this.teleop = enabled;
     }
 

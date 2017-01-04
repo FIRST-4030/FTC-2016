@@ -54,6 +54,6 @@ public class Gyro {
     }
 
     public int getHeading() {
-        return (getHeadingRaw() + offset) % 360;
+        return (getHeadingRaw() + offset + 360) % 360;
     }
 }

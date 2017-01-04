@@ -47,11 +47,17 @@ class RangeTest extends OpMode {
 
     @Override
     public void start() {
+        // Allow driver control
         tank.stop();
+        tank.setTeleop(true);
     }
 
     @Override
     public void loop() {
+
+        tank.loop(gamepad1);
+        telemetry.addData("Encoder 0/1/2/3", tank.getEncoder(0) + "/" + tank.getEncoder(1) + "/" +
+                tank.getEncoder(2) + "/" + tank.getEncoder(3));
 
         range.setLED(true);
         telemetry.addData("Range", range.getRange());
@@ -66,8 +72,6 @@ class RangeTest extends OpMode {
         } else {
             telemetry.addData("Heading", "%03d (Press A to reset)", gyro.getHeading());
         }
-
-        tank.loop(gamepad1);
 
         telemetry.update();
     }

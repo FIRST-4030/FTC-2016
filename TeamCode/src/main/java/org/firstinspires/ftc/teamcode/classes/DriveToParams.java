@@ -5,8 +5,8 @@ public class DriveToParams {
     public double limit2;
     public DriveToComp comparator;
     public final DriveToListener parent;
-    public final Object reference;
-    public final int timeout;
+    public Object reference;
+    public int timeout;
 
     public DriveToParams(DriveToListener parent) {
         this(parent, null);
