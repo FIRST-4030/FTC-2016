@@ -76,7 +76,7 @@ public class VuforiaFTC {
     private final VuforiaTarget CONFIG_PHONE;
 
     // Dynamic things we need to remember
-    private int trackingTimeout = 500;
+    private int trackingTimeout = 250;
     private VuforiaTrackables targetsRaw = null;
     private final List<VuforiaTrackable> targets = new ArrayList<>();
 
