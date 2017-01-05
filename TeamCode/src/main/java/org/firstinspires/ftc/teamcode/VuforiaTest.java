@@ -14,16 +14,25 @@ import org.firstinspires.ftc.teamcode.classes.TankMotor;
 import org.firstinspires.ftc.teamcode.classes.VuforiaFTC;
 import org.firstinspires.ftc.teamcode.classes.VuforiaTarget;
 
+@SuppressWarnings("unused")
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
 public class VuforiaTest extends OpMode implements DriveToListener {
-
-    public static final String TAG = "Vuforia Test";
 
     // Field, camera and robot constants
     private static final float MM_PER_INCH = 25.4f;
     private static final int BOT_WIDTH = (int) (18 * MM_PER_INCH);
     private static final int FIELD_WIDTH = (int) ((12 * 12 - 2) * MM_PER_INCH);
-    private static final int GYRO_MIN_UPDATE_INTERVAL = 500;
+    private static final int GYRO_MIN_UPDATE_INTERVAL = 5;
+
+    // Driving constants
+    private static final float ENCODER_PER_MM = 3.2f;
+    private static final int ENCODER_INDEX = 2;
+    private static final float SPEED_TURN = 0.5f;
+    private static final float SPEED_DRIVE = 1.0f;
+
+    // Numeric constants
+    private final static int FULL_CIRCLE = 360;
+    private final static int HALF_CIRCLE = FULL_CIRCLE / 2;
 
     // Tracking config
     private static final String CONFIG_ASSET = "FTC_2016-17";
@@ -66,23 +75,19 @@ public class VuforiaTest extends OpMode implements DriveToListener {
             TARGETS_ROTATION_RED
     )};
 
-    // Driving constants
-    private static final float ENCODER_PER_MM = 3.2f;
-    private static final int ENCODER_INDEX = 2;
-    private static final float SPEED_TURN = 0.5f;
-    private static final float SPEED_DRIVE = 1.0f;
-
     // Dynamic things we need to remember
     private VuforiaFTC vuforia;
     private TankDrive tank;
     private Gyro gyro;
     private DriveTo drive;
-    private long lastHeadingSync;
+    private double headingSyncExpires;
+
+    // TODO: Debug vars
     private int lastBearing = 0;
     private String thisTarget = "";
     private String lastTarget = "";
 
-    // Sensor and reference types for our DriveTo callbacks
+    // Sensor reference types for our DriveTo callbacks
     enum SENSOR_TYPE {
         GYRO, GYRO_SECONDARY, ENCODER
     }
@@ -112,9 +117,6 @@ public class VuforiaTest extends OpMode implements DriveToListener {
             telemetry.log().add("ERROR: Unable to initalize motors");
         }
 
-        // Reduce speeds while testing
-        tank.setSpeedScale(0.5);
-
         // Vuforia
         vuforia = new VuforiaFTC(CONFIG_ASSET, CONFIG_TARGET_NUM, CONFIG, CONFIG_PHONE);
         vuforia.init();
@@ -138,25 +140,23 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         // Allow driver control
         tank.stop();
         tank.setTeleop(true);
+
+        // TODO: Reduce speeds while testing
+        tank.setSpeedScale(0.5);
     }
 
     @Override
     public void loop() {
-        // Avoid repeated system calls
-        long now = System.currentTimeMillis();
-
-        // Drive
-        tank.loop(gamepad1);
-
-        // Update our location and pose if we aren't auto-driving
+        // Handle DriveTo driving
         if (drive != null) {
-            vuforia.track();
-        }
+            // DriveTo
+            drive.drive();
 
-        // Update the gyro offset if we have a fix
-        if (!vuforia.isStale() && lastHeadingSync + GYRO_MIN_UPDATE_INTERVAL < now) {
-            lastHeadingSync = now;
-            gyro.setHeading(vuforia.getHeading());
+            // Return to teleop when complete
+            if (drive.isDone()) {
+                drive = null;
+                tank.setTeleop(true);
+            }
         }
 
         // Driver feedback
@@ -167,17 +167,25 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         } else {
             telemetry.addData("Gyro Abs/Raw", gyro.getHeading() + "/" + gyro.getHeadingRaw());
         }
+        telemetry.update();
 
-        // Handle DriveTo driving
+        /*
+         * Cut the loop short when we are auto-driving
+         */
         if (drive != null) {
-            // DriveTo
-            drive.drive();
+            return;
+        }
 
-            // Return to teleop when complete
-            if (drive.isStarted() && drive.isDone()) {
-                drive = null;
-                tank.setTeleop(true);
-            }
+        // Drive
+        tank.loop(gamepad1);
+
+        // Update our location and target info
+        vuforia.track();
+
+        // Update the gyro offset if we have a fix
+        if (!vuforia.isStale() && headingSyncExpires < time) {
+            headingSyncExpires = time + GYRO_MIN_UPDATE_INTERVAL;
+            gyro.setHeading(vuforia.getHeading());
         }
 
         // Collect data about the first visible target
@@ -198,39 +206,22 @@ public class VuforiaTest extends OpMode implements DriveToListener {
             }
         }
 
-        // Turn to face the first visible target
-        if (drive == null && valid && gamepad1.y) {
-            tank.setTeleop(false);
-            int heading = gyro.getHeading();
-            DriveToParams param1 = new DriveToParams(this, SENSOR_TYPE.GYRO);
-            DriveToParams param2 = new DriveToParams(this, SENSOR_TYPE.GYRO_SECONDARY);
+        /*
+         * Cut the loop short when we don't have a vision fix
+         */
+        if (!valid) {
+            return;
+        }
 
-            // Turn the short way
-            lastBearing = bearing;
-            lastTarget = thisTarget;
-            if ((bearing - heading + 360) % 360 <= 180) {
-                // CW
-                param1.greaterThan(bearing);
-                param2.lessThan((bearing + 180) % 360);
-            } else {
-                // CCW
-                param1.lessThan(bearing);
-                param2.greaterThan((bearing + 180) % 360);
-            }
-            drive = new DriveTo(new DriveToParams[]{param1, param2});
+        // Turn to face the first visible target
+        if (gamepad1.y) {
+            turnBearing(bearing);
         }
 
         // Drive half the distance to the first visible target
-        if (drive == null && valid && gamepad1.x) {
-            tank.setTeleop(false);
-            DriveToParams param = new DriveToParams(this, SENSOR_TYPE.ENCODER);
-            int ticks = (int) ((float) -distance * ENCODER_PER_MM);
-            param.lessThan((ticks / 2) + tank.getEncoder(ENCODER_INDEX));
-            drive = new DriveTo(new DriveToParams[]{param});
+        if (gamepad1.x) {
+            driveForward(distance / 2);
         }
-
-        // Loop invariants
-        telemetry.update();
     }
 
     @Override
@@ -282,5 +273,34 @@ public class VuforiaTest extends OpMode implements DriveToListener {
                 break;
         }
         return value;
+    }
+
+    private void turnBearing(int bearing) {
+        tank.setTeleop(false);
+        int heading = gyro.getHeading();
+        DriveToParams param1 = new DriveToParams(this, SENSOR_TYPE.GYRO);
+        DriveToParams param2 = new DriveToParams(this, SENSOR_TYPE.GYRO_SECONDARY);
+
+        // Turn the short way
+        lastBearing = bearing;
+        lastTarget = thisTarget;
+        if ((bearing - heading + FULL_CIRCLE) % FULL_CIRCLE <= HALF_CIRCLE) {
+            // CW
+            param1.greaterThan(bearing);
+            param2.lessThan((bearing + HALF_CIRCLE) % FULL_CIRCLE);
+        } else {
+            // CCW
+            param1.lessThan(bearing);
+            param2.greaterThan((bearing + HALF_CIRCLE) % FULL_CIRCLE);
+        }
+        drive = new DriveTo(new DriveToParams[]{param1, param2});
+    }
+
+    private void driveForward(int distance) {
+        tank.setTeleop(false);
+        DriveToParams param = new DriveToParams(this, SENSOR_TYPE.ENCODER);
+        int ticks = (int) ((float) -distance * ENCODER_PER_MM);
+        param.lessThan(ticks + tank.getEncoder(ENCODER_INDEX));
+        drive = new DriveTo(new DriveToParams[]{param});
     }
 }
