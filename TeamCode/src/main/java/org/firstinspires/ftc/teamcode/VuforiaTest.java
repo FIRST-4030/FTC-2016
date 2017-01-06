@@ -82,7 +82,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
     private DriveTo drive;
     private double headingSyncExpires;
 
-    // TODO: Debug vars
+    // TODO: Debug
     private int lastBearing = 0;
     private String thisTarget = "";
     private String lastTarget = "";
@@ -141,8 +141,11 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         tank.stop();
         tank.setTeleop(true);
 
-        // TODO: Reduce speeds while testing
-        tank.setSpeedScale(0.5);
+        // TODO: Debug
+        if (true) {
+            // Reduce speeds while testing
+            tank.setSpeedScale(0.5);
+        }
     }
 
     @Override
@@ -165,7 +168,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         if (!gyro.isReady()) {
             telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d" + (int) time);
         } else {
-            telemetry.addData("Gyro Abs/Raw", gyro.getHeading() + "/" + gyro.getHeadingRaw());
+            telemetry.addData("Gyro Abs/Rel", gyro.getHeading() + "/" + gyro.getHeadingRaw());
         }
         telemetry.update();
 
@@ -199,10 +202,35 @@ public class VuforiaTest extends OpMode implements DriveToListener {
                     bearing = vuforia.bearing(index);
                     distance = vuforia.distance(index);
                     valid = true;
-                    thisTarget = target;
-                    telemetry.addData("Bearing (" + thisTarget + ")", bearing);
+                    // TODO: Debug
+                    if (true) {
+                        thisTarget = target;
+                        telemetry.addData("Bearing (" + thisTarget + ")", bearing);
+                    }
                     break;
                 }
+            }
+        }
+
+        // Turn 90° left/right
+        if (gamepad1.right_bumper) {
+            if (gamepad1.x) {
+                turnAngle(-FULL_CIRCLE / 4);
+            } else if (gamepad1.b) {
+                turnAngle(FULL_CIRCLE / 4);
+            }
+        }
+
+        // Turn to face cardinal directions (or our best guess if we've never seen a target)
+        if (gamepad1.left_bumper) {
+            if (gamepad1.y) {
+                turnBearing(FULL_CIRCLE / 4 * 0);
+            } else if (gamepad1.b) {
+                turnBearing(FULL_CIRCLE / 4 * 1);
+            } else if (gamepad1.a) {
+                turnBearing(FULL_CIRCLE / 4 * 2);
+            } else if (gamepad1.x) {
+                turnBearing(FULL_CIRCLE / 4 * 3);
             }
         }
 
@@ -236,24 +264,36 @@ public class VuforiaTest extends OpMode implements DriveToListener {
             case GYRO:
                 // Turning clockwise increases heading
                 if (param.comparator.equals(DriveToComp.GREATER)) {
-                    telemetry.log().add("Target/Bearing: " + lastTarget + "/" + lastBearing);
-                    telemetry.log().add("CW current/target: " + gyro.getHeading() + "/" + param.limit1);
+                    // TODO: Debug
+                    if (true) {
+                        //telemetry.log().add("Target/Bearing: " + lastTarget + "/" + lastBearing);
+                        telemetry.log().add("CW current/target: " + gyro.getHeading() + "/" + param.limit1);
+                    }
                     tank.setSpeed(-SPEED_TURN, MotorSide.LEFT);
                     tank.setSpeed(SPEED_TURN, MotorSide.RIGHT);
                 } else {
-                    telemetry.log().add("Target/Bearing: " + lastTarget + "/" + lastBearing);
-                    telemetry.log().add("CCW current/target: " + gyro.getHeading() + "/" + param.limit1);
+                    // TODO: Debug
+                    if (true) {
+                        //telemetry.log().add("Target/Bearing: " + lastTarget + "/" + lastBearing);
+                        telemetry.log().add("CCW current/target: " + gyro.getHeading() + "/" + param.limit1);
+                    }
                     tank.setSpeed(SPEED_TURN, MotorSide.LEFT);
                     tank.setSpeed(-SPEED_TURN, MotorSide.RIGHT);
                 }
                 break;
             case GYRO_SECONDARY:
                 // Do nothing
-                telemetry.log().add("Secondary " + param.comparator + " current/target: " + gyro.getHeading() + "/" + param.limit1);
+                // TODO: Debug
+                if (false) {
+                    telemetry.log().add("Secondary " + param.comparator + " current/target: " + gyro.getHeading() + "/" + param.limit1);
+                }
                 break;
             case ENCODER:
                 // Always drive forward
-                telemetry.log().add("Forward current/target: " + tank.getEncoder(ENCODER_INDEX) + "/" + param.limit1);
+                // TODO: Debug
+                if (false) {
+                    telemetry.log().add("Forward current/target: " + tank.getEncoder(ENCODER_INDEX) + "/" + param.limit1);
+                }
                 tank.setSpeed(-SPEED_DRIVE);
                 break;
         }
@@ -275,13 +315,34 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         return value;
     }
 
+    private void turnAngle(int angle) {
+        tank.setTeleop(false);
+        DriveToParams param = new DriveToParams(this, SENSOR_TYPE.GYRO);
+
+        // Normalized heading and bearing
+        int heading = gyro.getHeading();
+        int bearing = (heading + angle + FULL_CIRCLE) % FULL_CIRCLE;
+
+        // Turn CCW for negative angles
+        if (angle > 0) {
+            param.greaterThan(bearing);
+        } else {
+            param.lessThan(bearing);
+        }
+        drive = new DriveTo(new DriveToParams[]{param});
+    }
+
     private void turnBearing(int bearing) {
         tank.setTeleop(false);
-        int heading = gyro.getHeading();
         DriveToParams param1 = new DriveToParams(this, SENSOR_TYPE.GYRO);
         DriveToParams param2 = new DriveToParams(this, SENSOR_TYPE.GYRO_SECONDARY);
 
+        // Normalized heading and bearing
+        int heading = gyro.getHeading();
+        bearing = (bearing + FULL_CIRCLE) % FULL_CIRCLE;
+
         // Turn the short way
+        // TODO: Debug
         lastBearing = bearing;
         lastTarget = thisTarget;
         if ((bearing - heading + FULL_CIRCLE) % FULL_CIRCLE <= HALF_CIRCLE) {
