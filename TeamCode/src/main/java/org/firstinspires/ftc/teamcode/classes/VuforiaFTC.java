@@ -362,7 +362,7 @@ public class VuforiaFTC {
     private double bearing(double[] src, double[] dest) {
         double bearing = Math.atan2(dest[1] - src[1], dest[0] - src[0]);
         bearing = Math.toDegrees(bearing);
-        return (bearing + 360 + 180) % 360;
+        return (bearing + FULL_CIRCLE + (FULL_CIRCLE / 2)) % FULL_CIRCLE;
     }
 
     // Distance from x1,y1 to x2,y2 in field location units (millimeters)
