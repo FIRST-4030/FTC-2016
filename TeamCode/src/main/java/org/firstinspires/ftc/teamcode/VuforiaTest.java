@@ -81,11 +81,8 @@ public class VuforiaTest extends OpMode implements DriveToListener {
     private Gyro gyro;
     private DriveTo drive;
     private double headingSyncExpires;
-
-    // TODO: Debug
     private int lastBearing = 0;
-    private String thisTarget = "";
-    private String lastTarget = "";
+    private String lastTarget = "<None>";
 
     // Sensor reference types for our DriveTo callbacks
     enum SENSOR_TYPE {
@@ -170,6 +167,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         } else {
             telemetry.addData("Gyro Abs/Rel", gyro.getHeading() + "/" + gyro.getHeadingRaw());
         }
+        telemetry.addData("Bearing (" + lastTarget + ")", lastBearing);
         telemetry.update();
 
         /*
@@ -193,31 +191,30 @@ public class VuforiaTest extends OpMode implements DriveToListener {
 
         // Collect data about the first visible target
         boolean valid = false;
+        String target = null;
         int bearing = 0;
         int distance = 0;
         if (!vuforia.isStale()) {
-            for (String target : vuforia.getVisible().keySet()) {
-                if (vuforia.getVisible(target)) {
-                    int index = vuforia.getTargetIndex(target);
+            for (String t : vuforia.getVisible().keySet()) {
+                if (vuforia.getVisible(t)) {
+                    target = t;
+                    int index = vuforia.getTargetIndex(t);
                     bearing = vuforia.bearing(index);
                     distance = vuforia.distance(index);
                     valid = true;
-                    // TODO: Debug
-                    if (true) {
-                        thisTarget = target;
-                        telemetry.addData("Bearing (" + thisTarget + ")", bearing);
-                    }
                     break;
                 }
             }
+            lastTarget = target;
+            lastBearing = bearing;
         }
 
         // Turn 90° left/right
         if (gamepad1.right_bumper) {
             if (gamepad1.x) {
-                turnAngle(-FULL_CIRCLE / 4);
+                turnReset(-FULL_CIRCLE / 4);
             } else if (gamepad1.b) {
-                turnAngle(FULL_CIRCLE / 4);
+                turnReset(FULL_CIRCLE / 4);
             }
         }
 
@@ -315,9 +312,24 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         return value;
     }
 
+    // TODO: Debug
+    // This whole function is just to test gyro turning
+    private void turnReset(int angle) {
+        tank.setTeleop(false);
+        gyro.reset();
+        DriveToParams param = new DriveToParams(this, SENSOR_TYPE.GYRO);
+        if (angle > 0) {
+            param.greaterThan(angle);
+        } else {
+            param.lessThan(angle);
+        }
+        drive = new DriveTo(new DriveToParams[]{param});
+    }
+
     private void turnAngle(int angle) {
         tank.setTeleop(false);
-        DriveToParams param = new DriveToParams(this, SENSOR_TYPE.GYRO);
+        DriveToParams param1 = new DriveToParams(this, SENSOR_TYPE.GYRO);
+        DriveToParams param2 = new DriveToParams(this, SENSOR_TYPE.GYRO_SECONDARY);
 
         // Normalized heading and bearing
         int heading = gyro.getHeading();
@@ -325,36 +337,31 @@ public class VuforiaTest extends OpMode implements DriveToListener {
 
         // Turn CCW for negative angles
         if (angle > 0) {
-            param.greaterThan(bearing);
-        } else {
-            param.lessThan(bearing);
-        }
-        drive = new DriveTo(new DriveToParams[]{param});
-    }
-
-    private void turnBearing(int bearing) {
-        tank.setTeleop(false);
-        DriveToParams param1 = new DriveToParams(this, SENSOR_TYPE.GYRO);
-        DriveToParams param2 = new DriveToParams(this, SENSOR_TYPE.GYRO_SECONDARY);
-
-        // Normalized heading and bearing
-        int heading = gyro.getHeading();
-        bearing = (bearing + FULL_CIRCLE) % FULL_CIRCLE;
-
-        // Turn the short way
-        // TODO: Debug
-        lastBearing = bearing;
-        lastTarget = thisTarget;
-        if ((bearing - heading + FULL_CIRCLE) % FULL_CIRCLE <= HALF_CIRCLE) {
-            // CW
             param1.greaterThan(bearing);
             param2.lessThan((bearing + HALF_CIRCLE) % FULL_CIRCLE);
         } else {
-            // CCW
             param1.lessThan(bearing);
             param2.greaterThan((bearing + HALF_CIRCLE) % FULL_CIRCLE);
         }
-        drive = new DriveTo(new DriveToParams[]{param1, param2});
+        // TODO: DEBUG
+        if (true) {
+            drive = new DriveTo(new DriveToParams[]{param1});
+        }
+        //drive = new DriveTo(new DriveToParams[]{param1, param2});
+    }
+
+    private void turnBearing(int bearing) {
+        // Normalized heading and turns in each direction
+        int heading = gyro.getHeading();
+        int cw = (heading - bearing + FULL_CIRCLE) % FULL_CIRCLE;
+        int ccw = (bearing - heading + FULL_CIRCLE) % FULL_CIRCLE;
+
+        // Turn the short way
+        if (Math.abs(cw) <= Math.abs(ccw)) {
+            turnAngle(cw);
+        } else {
+            turnAngle(-ccw);
+        }
     }
 
     private void driveForward(int distance) {
