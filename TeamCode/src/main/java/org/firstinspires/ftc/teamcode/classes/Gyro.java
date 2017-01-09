@@ -4,6 +4,8 @@ import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Gyro {
+    private static final int FULL_CIRCLE = 360;
+
     private ModernRoboticsI2cGyro gyro;
     private boolean ready = false;
     private int offset = 0;
@@ -39,7 +41,13 @@ public class Gyro {
     }
 
     public void setHeading(int heading) {
-        setOffset(heading - getHeadingRaw());
+        // Normalize heading and offset
+        heading = (heading + FULL_CIRCLE) % FULL_CIRCLE;
+        int offset = (heading - getHeadingBasic(true)) % FULL_CIRCLE;
+        if (offset > FULL_CIRCLE / 2) {
+            offset -= FULL_CIRCLE;
+        }
+        setOffset(offset);
     }
 
     public void setOffset(int offset) {
@@ -50,10 +58,26 @@ public class Gyro {
         if (!isReady()) {
             return 0;
         }
-        return gyro.getHeading();
+
+        // Invert to make CW rotation increase the heading
+        return -gyro.getIntegratedZValue();
     }
 
     public int getHeading() {
-        return (getHeadingRaw() + offset + 360) % 360;
+        return (getHeadingRaw() + offset);
+    }
+
+    public int getHeadingBasic() {
+        return getHeadingBasic(false);
+    }
+
+    private int getHeadingBasic(boolean raw) {
+        int heading;
+        if (raw) {
+            heading = getHeadingRaw();
+        } else {
+            heading = getHeading();
+        }
+        return ((heading % FULL_CIRCLE) + FULL_CIRCLE) % FULL_CIRCLE;
     }
 }
