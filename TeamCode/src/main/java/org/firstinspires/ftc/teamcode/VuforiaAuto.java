@@ -1,8 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.teamcode.classes.AllianceColor;
 import org.firstinspires.ftc.teamcode.classes.DriveTo;
 import org.firstinspires.ftc.teamcode.classes.DriveToComp;
 import org.firstinspires.ftc.teamcode.classes.DriveToListener;
@@ -15,7 +18,7 @@ import org.firstinspires.ftc.teamcode.classes.VuforiaFTC;
 import org.firstinspires.ftc.teamcode.classes.VuforiaTarget;
 
 @SuppressWarnings("unused")
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Vuforia Auto", group = "Test")
 public class VuforiaAuto extends OpMode implements DriveToListener {
 
     // Field, camera and robot constants
@@ -35,6 +38,21 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private static final int TIMEOUT_DEGREE = 100;
     private static final int OVERRUN_GYRO = 2;
     private static final int OVERRUN_ENCODER = 25;
+    private static final float SPEED_SHOOT = 1.0f;
+    private static final float BLOCKER_UP = 0.0f;
+    private static final float BLOCKER_DOWN = 0.98f;
+    private static final float BOOPER_IN = 0.0f;
+    private static final float BOOPER_OUT = 0.75f;
+
+    // Autonomous routine constants
+    private static final int SHOOT_DISTANCE = 1850;
+    private static final int SHOOT_SPIN = 3700;
+    private static final int NUM_SHOTS = 2;
+    private static final float SHOT_DELAY = 1.0f;
+    private static final int BALL_DISTANCE = 1100;
+    private static final int BLIND_TURN = 30;
+    private static final int DESTINATION_OFFSET = 100;
+    private static final float BEACON_DELAY = 1.0f;
 
     // Numeric constants
     private final static int FULL_CIRCLE = 360;
@@ -44,7 +62,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private static final int CONFIG_TARGET_NUM = 4;
     // TODO: This location and rotation is imaginary, but should at least be close.
     private static final VuforiaTarget CONFIG_PHONE = new VuforiaTarget(
-            "Phone",
+            "Phone", null,
             new float[]{BOT_WIDTH / 2, 0, 0},
             new float[]{-90, 0, 0},
             AxesOrder.YZY
@@ -59,22 +77,22 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private static final int TARGETS_OFFSET_NEAR = (int) (12 * MM_PER_INCH);
     private static final int TARGETS_OFFSET_FAR = (int) (36 * MM_PER_INCH);
     private static final VuforiaTarget[] CONFIG = {new VuforiaTarget(
-            "Wheels",
+            "Wheels", AllianceColor.Color.BLUE,
             new float[]{TARGETS_OFFSET_NEAR, TARGETS_Y_BLUE, 0},
             TARGETS_OFFSET_BLUE,
             TARGETS_ROTATION_BLUE
     ), new VuforiaTarget(
-            "Tools",
+            "Tools", AllianceColor.Color.RED,
             new float[]{TARGETS_X_RED, TARGETS_OFFSET_FAR, 0},
             TARGETS_OFFSET_RED,
             TARGETS_ROTATION_RED
     ), new VuforiaTarget(
-            "LEGO",
+            "LEGO", AllianceColor.Color.BLUE,
             new float[]{-TARGETS_OFFSET_FAR, TARGETS_Y_BLUE, 0},
             TARGETS_OFFSET_BLUE,
             TARGETS_ROTATION_BLUE
     ), new VuforiaTarget(
-            "Gears",
+            "Gears", AllianceColor.Color.RED,
             new float[]{TARGETS_X_RED, -TARGETS_OFFSET_NEAR, 0},
             TARGETS_OFFSET_RED,
             TARGETS_ROTATION_RED
@@ -85,14 +103,43 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private TankDrive tank;
     private Gyro gyro;
     private DriveTo drive;
+    private DcMotor shooter;
+    private Servo blocker;
+    private Servo booperLeft;
+    private Servo booperRight;
     private double headingSyncExpires;
     private int lastBearing = 0;
     private int lastDistance = 0;
     private String lastTarget = "<None>";
+    private AUTO_STATE state = AUTO_STATE.INIT;
+    private int shots = 0;
+    private double timer = 0.0;
+    private int destination = -1;
+    private AllianceColor.Color beacon = null;
 
     // Sensor reference types for our DriveTo callbacks
     enum SENSOR_TYPE {
-        GYRO, GYRO_SECONDARY, ENCODER
+        GYRO, DRIVE_ENCODER, SHOOT_ENCODER
+    }
+
+    // Enum for the main state machine
+    enum AUTO_STATE {
+        INIT,
+        DRIVE_TO_SHOOT,
+        SHOOT,
+        SHOOT_WAIT,
+        DRIVE_TO_BALL,
+        BLIND_TURN,
+        FIND_TARGET,
+        TURN_TO_DEST,
+        DRIVE_TO_DEST,
+        TURN_TO_TARGET,
+        ALIGN_AT_TARGET,
+        CHECK_COLOR,
+        PRESS_BEACON,
+        BEACON_WAIT,
+        BACK_AWAY,
+        DONE
     }
 
     @Override
@@ -117,7 +164,37 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         tank = new TankDrive(hardwareMap, motors);
         if (!tank.isAvailable()) {
             // Note that we could retry with different names to support multiple configs/robots
-            telemetry.log().add("ERROR: Unable to initalize motors");
+            telemetry.log().add("ERROR: Unable to initalize wheels");
+        }
+
+        // Shooter motor
+        try {
+            shooter = hardwareMap.dcMotor.get("shooter");
+        } catch (Exception e) {
+            telemetry.log().add("ERROR: Unable to initalize shooter");
+            shooter = null;
+        }
+
+        // Blocker
+        try {
+            blocker = hardwareMap.servo.get("blocker");
+            blocker.setPosition(BLOCKER_DOWN);
+        } catch (Exception e) {
+            telemetry.log().add("ERROR: Unable to initalize blocker");
+            blocker = null;
+        }
+
+        // Boopers
+        try {
+            booperLeft = hardwareMap.servo.get("booper-left");
+            booperRight = hardwareMap.servo.get("booper-right");
+            booperRight.setDirection(Servo.Direction.REVERSE);
+            booperLeft.setPosition(BOOPER_IN);
+            booperRight.setPosition(BOOPER_IN);
+        } catch (Exception e) {
+            telemetry.log().add("ERROR: Unable to initalize boopers");
+            booperLeft = null;
+            booperRight = null;
         }
 
         // Vuforia
@@ -140,12 +217,11 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         // Start Vuforia tracking
         vuforia.start();
 
-        // Allow driver control
+        // Steady...
         tank.stop();
-        tank.setTeleop(true);
+        state = AUTO_STATE.INIT;
     }
 
-    @SuppressWarnings("UnnecessaryReturnStatement")
     @Override
     public void loop() {
         // Handle DriveTo driving
@@ -173,13 +249,11 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
 
         /*
          * Cut the loop short when we are auto-driving
+         * This keeps us out of the state machine until the last auto-drive command is complete
          */
         if (drive != null) {
             return;
         }
-
-        // Drive
-        tank.loop(gamepad1);
 
         // Update our location and target info
         vuforia.track();
@@ -211,61 +285,115 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             lastDistance = distance;
         }
 
+        // Main state machine
+        DriveToParams param;
+        switch (state) {
+            case INIT:
+                state = AUTO_STATE.DRIVE_TO_SHOOT;
+                break;
+            case DRIVE_TO_SHOOT:
+                driveForward(SHOOT_DISTANCE);
+                state = AUTO_STATE.SHOOT;
+                break;
+            case SHOOT:
+                blocker.setPosition(BLOCKER_UP);
+                param = new DriveToParams(this, SENSOR_TYPE.SHOOT_ENCODER);
+                param.greaterThan(SHOOT_SPIN);
+                drive = new DriveTo(new DriveToParams[]{param});
+                timer = time + SHOT_DELAY;
+                shots++;
+                break;
+            case SHOOT_WAIT:
+                blocker.setPosition(BLOCKER_DOWN);
+                if (shots >= NUM_SHOTS) {
+                    state = AUTO_STATE.DRIVE_TO_BALL;
+                } else if (timer < time) {
+                    state = AUTO_STATE.SHOOT;
+                }
+                break;
+            case DRIVE_TO_BALL:
+                driveForward(BALL_DISTANCE);
+                state = AUTO_STATE.TURN_TO_TARGET;
+                break;
+            case BLIND_TURN:
+                turnAngle(BLIND_TURN);
+                state = AUTO_STATE.FIND_TARGET;
+                break;
+            case FIND_TARGET:
+                // TODO: Spin or something
 
-        /*
-         * It's always safe to return after this; it should be nothing but auto-drive modes
-         *
-         * Typically you only want to trigger a single auto-drive mode at any given time so
-         * be sure to return after selecting one
-         */
-
-        // Turn 90° left/right
-        if (gamepad1.right_bumper) {
-            if (gamepad1.x) {
-                turnAngle(-90);
-            } else if (gamepad1.b) {
-                turnAngle(90);
-            }
-            return;
-        }
-
-        // Turn to face cardinal directions (or our best guess if we've never seen a target)
-        if (gamepad1.left_bumper) {
-            if (gamepad1.y) {
-                turnBearing(0);
-            } else if (gamepad1.b) {
-                turnBearing(90);
-            } else if (gamepad1.a) {
-                turnBearing(180);
-            } else if (gamepad1.x) {
-                turnBearing(270);
-            }
-            return;
-        }
-
-        /*
-         * Cut the loop short when we don't have a vision fix
-         */
-        if (!valid) {
-            return;
-        }
-
-        // Turn to face the first visible target
-        if (gamepad1.y) {
-            turnBearing(bearing);
-            return;
-        }
-
-        // Drive half the distance to the first visible target
-        if (gamepad1.x) {
-            driveForward(distance / 2);
-            return;
+                // Select a destination when we have a vision fix
+                if (valid) {
+                    destination = closestTarget();
+                    state = AUTO_STATE.TURN_TO_DEST;
+                }
+                break;
+            case TURN_TO_DEST:
+                if (valid && destination >= 0) {
+                    turnBearing(vuforia.bearing(destinationXY(destination)));
+                }
+                state = AUTO_STATE.DRIVE_TO_DEST;
+                break;
+            case DRIVE_TO_DEST:
+                if (valid && destination >= 0) {
+                    driveForward(vuforia.distance(destinationXY(destination)));
+                }
+                state = AUTO_STATE.TURN_TO_TARGET;
+                break;
+            case TURN_TO_TARGET:
+                if (valid && destination >= 0) {
+                    turnBearing(vuforia.bearing(destination));
+                }
+                state = AUTO_STATE.ALIGN_AT_TARGET;
+                break;
+            case ALIGN_AT_TARGET:
+                // TODO: Some sort of turn and approach operation
+                state = AUTO_STATE.CHECK_COLOR;
+                break;
+            case CHECK_COLOR:
+                // TODO: Check the color sensor for beacon configuration
+                beacon = AllianceColor.Color.BLUE;
+                state = AUTO_STATE.PRESS_BEACON;
+                break;
+            case PRESS_BEACON:
+                // TODO: This depends on where the color sensor is mounted
+                if (beacon.equals(AllianceColor.Color.RED)) {
+                    booperLeft.setPosition(BOOPER_OUT);
+                } else {
+                    booperRight.setPosition(BOOPER_OUT);
+                }
+                timer = time + BEACON_DELAY;
+                state = AUTO_STATE.BEACON_WAIT;
+                break;
+            case BEACON_WAIT:
+                if (timer < time) {
+                    state = AUTO_STATE.BACK_AWAY;
+                }
+                break;
+            case BACK_AWAY:
+                booperLeft.setPosition(BOOPER_IN);
+                booperRight.setPosition(BOOPER_IN);
+                driveForward(-DESTINATION_OFFSET);
+                state = AUTO_STATE.DONE;
+                break;
+            case DONE:
+                // Nothing
+                break;
         }
     }
 
     @Override
     public void driveToStop(DriveToParams param) {
-        tank.stop();
+        switch ((SENSOR_TYPE) param.reference) {
+            case GYRO:
+                // Fall through
+            case DRIVE_ENCODER:
+                tank.stop();
+                break;
+            case SHOOT_ENCODER:
+                shooter.setPower(0);
+                break;
+        }
     }
 
     @Override
@@ -288,12 +416,11 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                     tank.setSpeed(-speed, MotorSide.RIGHT);
                 }
                 break;
-            case GYRO_SECONDARY:
-                // Do nothing
-                break;
-            case ENCODER:
-                // Always drive forward
+            case DRIVE_ENCODER:
                 tank.setSpeed(-SPEED_DRIVE);
+                break;
+            case SHOOT_ENCODER:
+                shooter.setPower(SPEED_SHOOT);
                 break;
         }
     }
@@ -303,12 +430,15 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         double value = 0;
         switch ((SENSOR_TYPE) param.reference) {
             case GYRO:
-                // Fallthrough
-            case GYRO_SECONDARY:
                 value = gyro.getHeading();
                 break;
-            case ENCODER:
+            case DRIVE_ENCODER:
                 value = tank.getEncoder(ENCODER_INDEX);
+                break;
+            case SHOOT_ENCODER:
+                if (shooter != null) {
+                    value = shooter.getCurrentPosition();
+                }
                 break;
         }
         return value;
@@ -347,9 +477,33 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
 
     private void driveForward(int distance) {
         tank.setTeleop(false);
-        DriveToParams param = new DriveToParams(this, SENSOR_TYPE.ENCODER);
+        DriveToParams param = new DriveToParams(this, SENSOR_TYPE.DRIVE_ENCODER);
         int ticks = (int) ((float) -distance * ENCODER_PER_MM);
         param.lessThan(ticks + tank.getEncoder(ENCODER_INDEX) - OVERRUN_ENCODER);
         drive = new DriveTo(new DriveToParams[]{param});
+    }
+
+    private int closestTarget() {
+        int index = -1;
+        int min = Integer.MAX_VALUE;
+        for (int i = 0; i < CONFIG.length; i++) {
+            int distance = vuforia.distance(CONFIG[i].adjusted[0], CONFIG[i].adjusted[1]);
+            if (distance < min) {
+                min = distance;
+                index = i;
+            }
+        }
+        return index;
+    }
+
+    private int[] destinationXY(int index) {
+        int[] destination = new int[]{CONFIG[index].adjusted[0], CONFIG[index].adjusted[1]};
+        // TODO: This is imaginary and must be calibrated before use
+        if (CONFIG[index].color.equals(AllianceColor.Color.RED)) {
+            destination[0] -= DESTINATION_OFFSET;
+        } else {
+            destination[1] -= DESTINATION_OFFSET;
+        }
+        return destination;
     }
 }
