@@ -45,6 +45,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private static final float BOOPER_OUT = 0.75f;
 
     // Autonomous routine constants
+    private static final float GYRO_TIMEOUT = 5.0f;
     private static final int SHOOT_DISTANCE = 1850;
     private static final int SHOOT_SPIN = 3700;
     private static final int NUM_SHOTS = 2;
@@ -98,7 +99,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             TARGETS_ROTATION_RED
     )};
 
-    // Dynamic things we need to remember
+    // Devices and subsystems
     private VuforiaFTC vuforia;
     private TankDrive tank;
     private Gyro gyro;
@@ -107,14 +108,13 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private Servo blocker;
     private Servo booperLeft;
     private Servo booperRight;
-    private double headingSyncExpires;
-    private int lastBearing = 0;
-    private int lastDistance = 0;
-    private String lastTarget = "<None>";
+
+    // Dynamic things we need to remember
+    private double headingSyncExpires = 0;
     private AUTO_STATE state = AUTO_STATE.INIT;
     private int shots = 0;
     private double timer = 0.0;
-    private int destination = -1;
+    private int target = -1;
     private AllianceColor.Color beacon = null;
 
     // Sensor reference types for our DriveTo callbacks
@@ -237,8 +237,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Driver feedback
+        telemetry.addData("State", state);
         vuforia.display(telemetry);
-        telemetry.addData("Target (" + lastTarget + ")", lastDistance + "mm @ " + lastBearing + "°");
         telemetry.addData("Encoder", tank.getEncoder(ENCODER_INDEX));
         if (!gyro.isReady()) {
             telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d" + (int) time);
@@ -264,39 +264,25 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             gyro.setHeading(vuforia.getHeading());
         }
 
-        // Collect data about the first visible target
-        boolean valid = false;
-        String target = null;
-        int bearing = 0;
-        int distance = 0;
-        if (!vuforia.isStale()) {
-            for (String t : vuforia.getVisible().keySet()) {
-                if (vuforia.getVisible(t)) {
-                    target = t;
-                    int index = vuforia.getTargetIndex(t);
-                    bearing = vuforia.bearing(index);
-                    distance = vuforia.distance(index);
-                    valid = true;
-                    break;
-                }
-            }
-            lastTarget = target;
-            lastBearing = bearing;
-            lastDistance = distance;
-        }
-
         // Main state machine
         DriveToParams param;
         switch (state) {
             case INIT:
-                state = AUTO_STATE.DRIVE_TO_SHOOT;
+                if (gyro.isReady()) {
+                    state = AUTO_STATE.DRIVE_TO_SHOOT;
+                } else if (time > GYRO_TIMEOUT) {
+                    gyro.disable();
+                    state = AUTO_STATE.DRIVE_TO_SHOOT;
+                }
                 break;
             case DRIVE_TO_SHOOT:
                 driveForward(SHOOT_DISTANCE);
                 state = AUTO_STATE.SHOOT;
                 break;
             case SHOOT:
-                blocker.setPosition(BLOCKER_UP);
+                if (blocker != null) {
+                    blocker.setPosition(BLOCKER_UP);
+                }
                 param = new DriveToParams(this, SENSOR_TYPE.SHOOT_ENCODER);
                 param.greaterThan(SHOOT_SPIN);
                 drive = new DriveTo(new DriveToParams[]{param});
@@ -304,7 +290,9 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 shots++;
                 break;
             case SHOOT_WAIT:
-                blocker.setPosition(BLOCKER_DOWN);
+                if (blocker != null) {
+                    blocker.setPosition(BLOCKER_DOWN);
+                }
                 if (shots >= NUM_SHOTS) {
                     state = AUTO_STATE.DRIVE_TO_BALL;
                 } else if (timer < time) {
@@ -316,39 +304,45 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 state = AUTO_STATE.TURN_TO_TARGET;
                 break;
             case BLIND_TURN:
+                // Bail if we have no gyro
+                if (!gyro.isReady()) {
+                    state = AUTO_STATE.DONE;
+                }
                 turnAngle(BLIND_TURN);
                 state = AUTO_STATE.FIND_TARGET;
                 break;
             case FIND_TARGET:
                 // TODO: Spin or something
 
-                // Select a destination when we have a vision fix
-                if (valid) {
-                    destination = closestTarget();
+                // Select a target when we have a vision fix
+                if (!vuforia.isStale()) {
+                    target = closestTarget();
                     state = AUTO_STATE.TURN_TO_DEST;
                 }
                 break;
             case TURN_TO_DEST:
-                if (valid && destination >= 0) {
-                    turnBearing(vuforia.bearing(destinationXY(destination)));
+                if (gyro.isReady() && target >= 0) {
+                    turnBearing(vuforia.bearing(destinationXY(target)));
+                    state = AUTO_STATE.DRIVE_TO_DEST;
                 }
-                state = AUTO_STATE.DRIVE_TO_DEST;
                 break;
             case DRIVE_TO_DEST:
-                if (valid && destination >= 0) {
-                    driveForward(vuforia.distance(destinationXY(destination)));
+                if (target >= 0) {
+                    driveForward(vuforia.distance(destinationXY(target)));
                 }
                 state = AUTO_STATE.TURN_TO_TARGET;
                 break;
             case TURN_TO_TARGET:
-                if (valid && destination >= 0) {
-                    turnBearing(vuforia.bearing(destination));
+                if (gyro.isReady() && target >= 0) {
+                    turnBearing(vuforia.bearing(target));
+                    state = AUTO_STATE.ALIGN_AT_TARGET;
                 }
-                state = AUTO_STATE.ALIGN_AT_TARGET;
                 break;
             case ALIGN_AT_TARGET:
                 // TODO: Some sort of turn and approach operation
-                state = AUTO_STATE.CHECK_COLOR;
+                if (vuforia.getVisible(CONFIG[target].name)) {
+                    state = AUTO_STATE.CHECK_COLOR;
+                }
                 break;
             case CHECK_COLOR:
                 // TODO: Check the color sensor for beacon configuration
@@ -358,9 +352,13 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             case PRESS_BEACON:
                 // TODO: This depends on where the color sensor is mounted
                 if (beacon.equals(AllianceColor.Color.RED)) {
-                    booperLeft.setPosition(BOOPER_OUT);
+                    if (booperLeft != null) {
+                        booperLeft.setPosition(BOOPER_OUT);
+                    }
                 } else {
-                    booperRight.setPosition(BOOPER_OUT);
+                    if (booperRight != null) {
+                        booperRight.setPosition(BOOPER_OUT);
+                    }
                 }
                 timer = time + BEACON_DELAY;
                 state = AUTO_STATE.BEACON_WAIT;
@@ -371,8 +369,10 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 }
                 break;
             case BACK_AWAY:
-                booperLeft.setPosition(BOOPER_IN);
-                booperRight.setPosition(BOOPER_IN);
+                if (booperLeft != null && booperRight != null) {
+                    booperLeft.setPosition(BOOPER_IN);
+                    booperRight.setPosition(BOOPER_IN);
+                }
                 driveForward(-DESTINATION_OFFSET);
                 state = AUTO_STATE.DONE;
                 break;
@@ -391,7 +391,9 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 tank.stop();
                 break;
             case SHOOT_ENCODER:
-                shooter.setPower(0);
+                if (shooter != null) {
+                    shooter.setPower(0);
+                }
                 break;
         }
     }
@@ -420,7 +422,9 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 tank.setSpeed(-SPEED_DRIVE);
                 break;
             case SHOOT_ENCODER:
-                shooter.setPower(SPEED_SHOOT);
+                if (shooter != null) {
+                    shooter.setPower(SPEED_SHOOT);
+                }
                 break;
         }
     }
