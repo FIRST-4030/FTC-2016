@@ -308,6 +308,17 @@ public class VuforiaFTC {
     }
 
     /**
+     * @param dest X,Y array of destination in the field plane
+     * @return Bearing from the current location to {x,y} with respect to field north
+     * <p>
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
+    public int bearing(int[] dest) {
+        return bearing(dest[0], dest[1]);
+    }
+
+    /**
      * @param index CONFIG_TARGETS index. Syntax helper for {@link #bearing(int, int)} bearing(int, int)}
      * @return Bearing from the current location to {x,y} with respect to field north
      * <p>
@@ -339,6 +350,17 @@ public class VuforiaFTC {
      */
     public int distance(int index) {
         return distance(CONFIG_TARGETS[index].adjusted[0], CONFIG_TARGETS[index].adjusted[1]);
+    }
+
+    /**
+     * @param dest X,Y array of destination in the field plane
+     * @return Distance from the current location to {x,y} with respect to field units (millimeters)
+     * <p>
+     * This value may be out-of-date. Most uses should include an evaluation of validity based on
+     * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
+     */
+    public int distance(int[] dest) {
+        return distance(dest[0], dest[1]);
     }
 
     public void setTrackingTimeout(int timeout) {
