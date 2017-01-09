@@ -6,14 +6,16 @@ public class VuforiaTarget {
     private static final int NUM_DIMENSIONS = 3;
 
     public final String name;
+    public final AllianceColor.Color color;
     public final float[] raw;
     public final float[] offset;
     public final float[] rotation;
     public final AxesOrder axesOrder;
     public final int[] adjusted;
 
-    public VuforiaTarget(String name, float[] location, float[] offset, float[] rotation, AxesOrder axesOrder) {
+    public VuforiaTarget(String name, AllianceColor.Color color, float[] location, float[] offset, float[] rotation, AxesOrder axesOrder) {
         this.name = name;
+        this.color = color;
         this.raw = location;
         if (offset != null) {
             this.offset = offset;
@@ -33,11 +35,11 @@ public class VuforiaTarget {
         }
     }
 
-    public VuforiaTarget(String name, float[] location, float[] offset, float[] rotation) {
-        this(name, location, offset, rotation, null);
+    public VuforiaTarget(String name, AllianceColor.Color color, float[] location, float[] offset, float[] rotation) {
+        this(name, color, location, offset, rotation, null);
     }
 
-    public VuforiaTarget(String name, float[] location, float[] rotation, AxesOrder axesOrder) {
-        this(name, location, null, rotation, axesOrder);
+    public VuforiaTarget(String name, AllianceColor.Color color, float[] location, float[] rotation, AxesOrder axesOrder) {
+        this(name, color, location, null, rotation, axesOrder);
     }
 }
