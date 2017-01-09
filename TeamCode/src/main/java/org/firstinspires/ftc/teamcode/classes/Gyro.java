@@ -22,6 +22,11 @@ public class Gyro {
         }
     }
 
+    public void disable() {
+        ready = false;
+        gyro = null;
+    }
+
     public boolean isAvailable() {
         return gyro != null;
     }
