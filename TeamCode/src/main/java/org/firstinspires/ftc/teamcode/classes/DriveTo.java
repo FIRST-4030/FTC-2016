@@ -65,6 +65,8 @@ public class DriveTo {
         for (DriveToParams param : params) {
             boolean onTarget = false;
             double actual = param.parent.driveToSensor(param);
+            param.error1 = param.limit1 - actual;
+            param.error2 = param.limit2 - actual;
             switch (param.comparator) {
                 case LESS:
                     if (actual < param.limit1) {
