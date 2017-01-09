@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.teamcode.classes.AllianceColor;
 import org.firstinspires.ftc.teamcode.classes.DriveTo;
 import org.firstinspires.ftc.teamcode.classes.DriveToComp;
 import org.firstinspires.ftc.teamcode.classes.DriveToListener;
@@ -44,7 +45,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
     private static final int CONFIG_TARGET_NUM = 4;
     // TODO: This location and rotation is imaginary, but should at least be close.
     private static final VuforiaTarget CONFIG_PHONE = new VuforiaTarget(
-            "Phone",
+            "Phone", null,
             new float[]{BOT_WIDTH / 2, 0, 0},
             new float[]{-90, 0, 0},
             AxesOrder.YZY
@@ -59,22 +60,22 @@ public class VuforiaTest extends OpMode implements DriveToListener {
     private static final int TARGETS_OFFSET_NEAR = (int) (12 * MM_PER_INCH);
     private static final int TARGETS_OFFSET_FAR = (int) (36 * MM_PER_INCH);
     private static final VuforiaTarget[] CONFIG = {new VuforiaTarget(
-            "Wheels",
+            "Wheels", AllianceColor.Color.BLUE,
             new float[]{TARGETS_OFFSET_NEAR, TARGETS_Y_BLUE, 0},
             TARGETS_OFFSET_BLUE,
             TARGETS_ROTATION_BLUE
     ), new VuforiaTarget(
-            "Tools",
+            "Tools", AllianceColor.Color.RED,
             new float[]{TARGETS_X_RED, TARGETS_OFFSET_FAR, 0},
             TARGETS_OFFSET_RED,
             TARGETS_ROTATION_RED
     ), new VuforiaTarget(
-            "LEGO",
+            "LEGO", AllianceColor.Color.BLUE,
             new float[]{-TARGETS_OFFSET_FAR, TARGETS_Y_BLUE, 0},
             TARGETS_OFFSET_BLUE,
             TARGETS_ROTATION_BLUE
     ), new VuforiaTarget(
-            "Gears",
+            "Gears", AllianceColor.Color.RED,
             new float[]{TARGETS_X_RED, -TARGETS_OFFSET_NEAR, 0},
             TARGETS_OFFSET_RED,
             TARGETS_ROTATION_RED
@@ -92,7 +93,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
 
     // Sensor reference types for our DriveTo callbacks
     enum SENSOR_TYPE {
-        GYRO, GYRO_SECONDARY, ENCODER
+        GYRO, ENCODER
     }
 
     @Override
@@ -288,9 +289,6 @@ public class VuforiaTest extends OpMode implements DriveToListener {
                     tank.setSpeed(-speed, MotorSide.RIGHT);
                 }
                 break;
-            case GYRO_SECONDARY:
-                // Do nothing
-                break;
             case ENCODER:
                 // Always drive forward
                 tank.setSpeed(-SPEED_DRIVE);
@@ -303,8 +301,6 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         double value = 0;
         switch ((SENSOR_TYPE) param.reference) {
             case GYRO:
-                // Fallthrough
-            case GYRO_SECONDARY:
                 value = gyro.getHeading();
                 break;
             case ENCODER:
