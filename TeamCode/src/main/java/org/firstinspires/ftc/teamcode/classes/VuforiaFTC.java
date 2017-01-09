@@ -67,7 +67,6 @@ public class VuforiaFTC {
 
     // Numeric constants
     private static final int FULL_CIRCLE = 360;
-    private static final float MILLS_PER_SEC = 1000.0f;
 
     // Tracking config
     private final String CONFIG_ASSET;
@@ -76,7 +75,7 @@ public class VuforiaFTC {
     private final VuforiaTarget CONFIG_PHONE;
 
     // Dynamic things we need to remember
-    private int trackingTimeout = 250;
+    private int trackingTimeout = 100;
     private VuforiaTrackables targetsRaw = null;
     private final List<VuforiaTrackable> targets = new ArrayList<>();
 
@@ -196,9 +195,6 @@ public class VuforiaFTC {
 
         // Raw data from the last location and orientation fix
         telemetry.addData("X/Y Heading", getX() + "/" + getY() + " " + getHeading() + "°");
-        if (getTimestamp() > 0) {
-            telemetry.addData("Age", "%.2f", (System.currentTimeMillis() - getTimestamp()) / MILLS_PER_SEC);
-        }
     }
 
     /**
