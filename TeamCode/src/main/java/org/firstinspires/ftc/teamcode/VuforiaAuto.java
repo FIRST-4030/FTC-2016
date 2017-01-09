@@ -220,6 +220,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         // Steady...
         tank.stop();
         state = AUTO_STATE.INIT;
+        timer = time + GYRO_TIMEOUT;
     }
 
     @Override
@@ -270,7 +271,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             case INIT:
                 if (gyro.isReady()) {
                     state = AUTO_STATE.DRIVE_TO_SHOOT;
-                } else if (time > GYRO_TIMEOUT) {
+                } else if (timer < time) {
                     gyro.disable();
                     state = AUTO_STATE.DRIVE_TO_SHOOT;
                 }
