@@ -37,73 +37,90 @@ public class SensorReaderTest extends LinearOpMode {
         long timeLED = now;
 
         // Toggles for installed sensors
-        boolean enableColor = true;
-        boolean enableColor2 = true;
-        boolean enableODS = false;
-        boolean enableGyro = false;
-        boolean enableRange = false;
-        boolean enableCompass = false;
-        boolean enableIR = false;
+        boolean enableColor, enableColor2;
+        boolean enableODS;
+        boolean enableGyro;
+        boolean enableRange;
+        boolean enableCompass;
+        boolean enableIR;
 
         // LED state tracking
         boolean ledOn = true;
 
         // Init the color sensors
-        ColorSensor color = null;
-        ColorSensor color2 = null;
-        if (enableColor) {
+        ColorSensor color, color2;
+        try {
             color = hardwareMap.colorSensor.get("color");
             color.enableLed(ledOn);
+            enableColor = true;
+        } catch (Exception e) {
+            color = null;
+            enableColor = false;
+
         }
-        if (enableColor2) {
+        try {
             color2 = hardwareMap.colorSensor.get("color2");
             color2.setI2cAddress(I2cAddr.create8bit(0x1c));
             color2.enableLed(ledOn);
+            enableColor2 = true;
+        } catch (Exception e) {
+            color2 = null;
+            enableColor2 = false;
         }
 
         // Init the reflected light sensor
-        OpticalDistanceSensor ods = null;
-        if (enableODS) {
+        OpticalDistanceSensor ods;
+        try {
             ods = hardwareMap.opticalDistanceSensor.get("ods");
+            enableODS = true;
+        } catch (Exception e) {
+            ods = null;
+            enableODS = false;
         }
 
         // Init gyro
         ModernRoboticsI2cGyro gyro = null;
-        if (enableGyro) {
+        try {
             gyro = (ModernRoboticsI2cGyro) hardwareMap.gyroSensor.get("gyro");
             gyro.resetDeviceConfigurationForOpMode();
             gyro.calibrate();
-            while (gyro.isCalibrating()) {
-                telemetry.addData("Gyro", "Calibrating. DO NOT MOVE!");
-                telemetry.addData("Status", gyro.status());
-                telemetry.addData("Time", System.currentTimeMillis());
-                telemetry.update();
-                Thread.sleep(50);
-                idle();
-            }
-            telemetry.addData("Gyro", "Calibrated. Press start.");
-            telemetry.update();
+            enableGyro = true;
+        } catch (Exception e) {
+            gyro = null;
+            enableGyro = false;
         }
 
         // Init range
-        ModernRoboticsI2cRangeSensor range = null;
-        if (enableRange) {
+        ModernRoboticsI2cRangeSensor range;
+        try {
             range = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "range");
             range.initialize();
             range.enableLed(ledOn);
+            enableRange = true;
+        } catch (Exception e) {
+            range = null;
+            enableRange = false;
         }
 
         // Init compass
-        ModernRoboticsI2cCompassSensor compass = null;
-        if (enableCompass) {
+        ModernRoboticsI2cCompassSensor compass;
+        try {
             compass = (ModernRoboticsI2cCompassSensor) hardwareMap.compassSensor.get("compass");
             compass.initialize();
+            enableCompass = true;
+        } catch (Exception e) {
+            compass = null;
+            enableCompass = false;
         }
 
         // Init IR
         IrSeekerSensor ir = null;
-        if (enableIR) {
+        try {
             ir = hardwareMap.irSeekerSensor.get("ir");
+            enableIR = true;
+        } catch (Exception e) {
+            ir = null;
+            enableIR = false;
         }
 
         // Wait for driver station start
@@ -154,8 +171,12 @@ public class SensorReaderTest extends LinearOpMode {
 
             // Read gyro
             if (enableGyro) {
-                telemetry.addData("Heading", "%03d (Press A to reset)", gyro.getHeading());
-                telemetry.addData("Gyro XYZ", "%03d %03d %03d", gyro.rawX(), gyro.rawY(), gyro.rawZ());
+                if (gyro.isCalibrating()) {
+                    telemetry.addData("Gyro", "Calibrating. DO NOT MOVE!");
+                } else {
+                    telemetry.addData("Heading", "%03d (Press A to reset)", gyro.getHeading());
+                    telemetry.addData("Gyro", "%03d %03d %03d", gyro.rawX(), gyro.rawY(), gyro.rawZ());
+                }
             }
 
             // Read color sensors
