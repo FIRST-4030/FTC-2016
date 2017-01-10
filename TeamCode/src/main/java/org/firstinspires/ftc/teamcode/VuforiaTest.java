@@ -2,8 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.teamcode.classes.AllianceColor;
 import org.firstinspires.ftc.teamcode.classes.DriveTo;
 import org.firstinspires.ftc.teamcode.classes.DriveToComp;
 import org.firstinspires.ftc.teamcode.classes.DriveToListener;
@@ -13,7 +11,8 @@ import org.firstinspires.ftc.teamcode.classes.MotorSide;
 import org.firstinspires.ftc.teamcode.classes.TankDrive;
 import org.firstinspires.ftc.teamcode.classes.TankMotor;
 import org.firstinspires.ftc.teamcode.classes.VuforiaFTC;
-import org.firstinspires.ftc.teamcode.classes.VuforiaTarget;
+import org.firstinspires.ftc.teamcode.config.VuforiaConfigs;
+import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
 
 @SuppressWarnings("unused")
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Vuforia Test", group = "Test")
@@ -64,7 +63,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         }
 
         // Drive motors
-        TankMotor motors[] = WheelMotorConfigs.CodeBot(2016);
+        TankMotor motors[] = WheelMotorConfigs.CodeBot();
         tank = new TankDrive(hardwareMap, motors);
         if (!tank.isAvailable()) {
             // Note that we could retry with different names to support multiple configs/robots
@@ -72,8 +71,8 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         }
 
         // Vuforia
-        vuforia = new VuforiaFTC(VuforiaConfigs.AssetName(2016), VuforiaConfigs.TargetCount(2016),
-                VuforiaConfigs.Field(2016), VuforiaConfigs.Bot(2016));
+        vuforia = new VuforiaFTC(VuforiaConfigs.AssetName, VuforiaConfigs.TargetCount,
+                VuforiaConfigs.Field(), VuforiaConfigs.Bot());
         vuforia.init();
 
         // Wait for the game to begin

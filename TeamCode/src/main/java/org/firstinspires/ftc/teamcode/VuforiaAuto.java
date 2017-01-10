@@ -1,21 +1,24 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.teamcode.classes.AllianceColor;
 import org.firstinspires.ftc.teamcode.classes.DriveTo;
 import org.firstinspires.ftc.teamcode.classes.DriveToComp;
 import org.firstinspires.ftc.teamcode.classes.DriveToListener;
 import org.firstinspires.ftc.teamcode.classes.DriveToParams;
 import org.firstinspires.ftc.teamcode.classes.Gyro;
+import org.firstinspires.ftc.teamcode.classes.Motor;
 import org.firstinspires.ftc.teamcode.classes.MotorSide;
+import org.firstinspires.ftc.teamcode.classes.ServoFTC;
 import org.firstinspires.ftc.teamcode.classes.TankDrive;
 import org.firstinspires.ftc.teamcode.classes.TankMotor;
 import org.firstinspires.ftc.teamcode.classes.VuforiaFTC;
 import org.firstinspires.ftc.teamcode.classes.VuforiaTarget;
+import org.firstinspires.ftc.teamcode.config.MotorConfigs;
+import org.firstinspires.ftc.teamcode.config.ServoConfigs;
+import org.firstinspires.ftc.teamcode.config.VuforiaConfigs;
+import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
 
 @SuppressWarnings("unused")
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Vuforia Auto", group = "Test")
@@ -34,10 +37,6 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private static final int OVERRUN_GYRO = 2;
     private static final int OVERRUN_ENCODER = 25;
     private static final float SPEED_SHOOT = 1.0f;
-    private static final float BLOCKER_UP = 0.0f;
-    private static final float BLOCKER_DOWN = 0.98f;
-    private static final float BOOPER_IN = 0.0f;
-    private static final float BOOPER_OUT = 0.75f;
 
     // Autonomous routine constants
     private static final float GYRO_TIMEOUT = 5.0f;
@@ -53,19 +52,16 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     // Numeric constants
     private final static int FULL_CIRCLE = 360;
 
-    // Tracking config
-    private VuforiaTarget[] config;
-    private VuforiaTarget configPhone;
-
     // Devices and subsystems
+    private VuforiaTarget[] config;
     private VuforiaFTC vuforia;
     private TankDrive tank;
     private Gyro gyro;
     private DriveTo drive;
-    private DcMotor shooter;
-    private Servo blocker;
-    private Servo booperLeft;
-    private Servo booperRight;
+    private Motor shooter;
+    private ServoFTC blocker;
+    private ServoFTC booperLeft;
+    private ServoFTC booperRight;
 
     // Dynamic things we need to remember
     private double headingSyncExpires = 0;
@@ -114,48 +110,44 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Drive motors
-        TankMotor motors[] = WheelMotorConfigs.CodeBot(2016);
+        TankMotor motors[] = WheelMotorConfigs.FinalBot();
         tank = new TankDrive(hardwareMap, motors);
         if (!tank.isAvailable()) {
-            // Note that we could retry with different names to support multiple configs/robots
+            motors = WheelMotorConfigs.CodeBot();
+            tank = new TankDrive(hardwareMap, motors);
+        }
+        if (!tank.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize wheels");
         }
 
         // Shooter motor
-        try {
-            shooter = hardwareMap.dcMotor.get("shooter");
-        } catch (Exception e) {
+        shooter = new Motor(hardwareMap, MotorConfigs.FinalBot());
+        if (!shooter.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize shooter");
-            shooter = null;
         }
+        shooter.stop();
 
         // Blocker
-        try {
-            blocker = hardwareMap.servo.get("blocker");
-            blocker.setPosition(BLOCKER_DOWN);
-        } catch (Exception e) {
+        blocker = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BLOCKER"));
+        if (!blocker.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize blocker");
-            blocker = null;
         }
+        // Max is down
+        blocker.max();
 
         // Boopers
-        try {
-            booperLeft = hardwareMap.servo.get("booper-left");
-            booperRight = hardwareMap.servo.get("booper-right");
-            booperRight.setDirection(Servo.Direction.REVERSE);
-            booperLeft.setPosition(BOOPER_IN);
-            booperRight.setPosition(BOOPER_IN);
-        } catch (Exception e) {
+        booperLeft = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BOOPER-LEFT"));
+        booperRight = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BOOPER-RIGHT"));
+        if (!booperLeft.isAvailable() || !booperRight.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize boopers");
-            booperLeft = null;
-            booperRight = null;
         }
+        booperLeft.min();
+        booperRight.min();
 
         // Vuforia
-        config = VuforiaConfigs.Field(2016);
-        configPhone = VuforiaConfigs.Bot(2016);
-        vuforia = new VuforiaFTC(VuforiaConfigs.AssetName(2016), VuforiaConfigs.TargetCount(2016),
-                config, configPhone);
+        config = VuforiaConfigs.Field();
+        vuforia = new VuforiaFTC(VuforiaConfigs.AssetName, VuforiaConfigs.TargetCount,
+                config, VuforiaConfigs.Bot());
         vuforia.init();
 
         // Wait for the game to begin
@@ -238,9 +230,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 state = AUTO_STATE.SHOOT;
                 break;
             case SHOOT:
-                if (blocker != null) {
-                    blocker.setPosition(BLOCKER_UP);
-                }
+                // Min is up
+                blocker.min();
                 param = new DriveToParams(this, SENSOR_TYPE.SHOOT_ENCODER);
                 param.greaterThan(SHOOT_SPIN);
                 drive = new DriveTo(new DriveToParams[]{param});
@@ -248,9 +239,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 shots++;
                 break;
             case SHOOT_WAIT:
-                if (blocker != null) {
-                    blocker.setPosition(BLOCKER_DOWN);
-                }
+                // Max is down
+                blocker.max();
                 if (shots >= NUM_SHOTS) {
                     state = AUTO_STATE.DRIVE_TO_BALL;
                 } else if (timer < time) {
@@ -310,13 +300,9 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             case PRESS_BEACON:
                 // TODO: This depends on where the color sensor is mounted
                 if (beacon.equals(AllianceColor.Color.RED)) {
-                    if (booperLeft != null) {
-                        booperLeft.setPosition(BOOPER_OUT);
-                    }
+                    booperLeft.max();
                 } else {
-                    if (booperRight != null) {
-                        booperRight.setPosition(BOOPER_OUT);
-                    }
+                    booperRight.max();
                 }
                 timer = time + BEACON_DELAY;
                 state = AUTO_STATE.BEACON_WAIT;
@@ -327,10 +313,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 }
                 break;
             case BACK_AWAY:
-                if (booperLeft != null && booperRight != null) {
-                    booperLeft.setPosition(BOOPER_IN);
-                    booperRight.setPosition(BOOPER_IN);
-                }
+                booperLeft.min();
+                booperRight.min();
                 driveForward(-DESTINATION_OFFSET);
                 state = AUTO_STATE.DONE;
                 break;
@@ -349,9 +333,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 tank.stop();
                 break;
             case SHOOT_ENCODER:
-                if (shooter != null) {
-                    shooter.setPower(0);
-                }
+                shooter.setPower(0);
                 break;
         }
     }
@@ -380,9 +362,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 tank.setSpeed(-SPEED_DRIVE);
                 break;
             case SHOOT_ENCODER:
-                if (shooter != null) {
-                    shooter.setPower(SPEED_SHOOT);
-                }
+                shooter.setPower(SPEED_SHOOT);
                 break;
         }
     }
@@ -398,9 +378,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 value = tank.getEncoder(ENCODER_INDEX);
                 break;
             case SHOOT_ENCODER:
-                if (shooter != null) {
-                    value = shooter.getCurrentPosition();
-                }
+                value = shooter.getEncoder();
                 break;
         }
         return value;
