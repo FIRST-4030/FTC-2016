@@ -20,6 +20,8 @@ import org.firstinspires.ftc.teamcode.config.ServoConfigs;
 import org.firstinspires.ftc.teamcode.config.VuforiaConfigs;
 import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
 
+import java.util.NoSuchElementException;
+
 @SuppressWarnings("unused")
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Vuforia Auto", group = "Test")
 public class VuforiaAuto extends OpMode implements DriveToListener {
@@ -93,7 +95,29 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         PRESS_BEACON,
         BEACON_WAIT,
         BACK_AWAY,
-        DONE
+        DONE;
+
+        // Private static copy to avoid repeated calls to values()
+        private static AUTO_STATE[] vals = values();
+
+        public AUTO_STATE prev() {
+            int i = ordinal() - 1;
+            if (i < 0) {
+                throw new NoSuchElementException();
+            }
+            return vals[i];
+        }
+
+        public AUTO_STATE next() {
+            int i = ordinal() + 1;
+            if (i >= vals.length) {
+                throw new NoSuchElementException();
+            }
+            return vals[i];
+        }
+
+        public static final AUTO_STATE first = INIT;
+        public static final AUTO_STATE last = DONE;
     }
 
     @Override
@@ -115,6 +139,9 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         if (!tank.isAvailable()) {
             motors = WheelMotorConfigs.CodeBot();
             tank = new TankDrive(hardwareMap, motors);
+            if (tank.isAvailable()) {
+                telemetry.log().add("NOTICE: Using CodeBot wheel config");
+            }
         }
         if (!tank.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize wheels");
@@ -123,12 +150,24 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         // Shooter motor
         shooter = new Motor(hardwareMap, MotorConfigs.FinalBot());
         if (!shooter.isAvailable()) {
+            shooter = new Motor(hardwareMap, MotorConfigs.CodeBot());
+            if (shooter.isAvailable()) {
+                telemetry.log().add("NOTICE: Using CodeBot shooter config");
+            }
+        }
+        if (!shooter.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize shooter");
         }
         shooter.stop();
 
         // Blocker
-        blocker = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BLOCKER"));
+        blocker = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BLOCKER"));
+        if (!blocker.isAvailable()) {
+            blocker = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BLOCKER"));
+            if (blocker.isAvailable()) {
+                telemetry.log().add("NOTICE: Using CodeBot blocker config");
+            }
+        }
         if (!blocker.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize blocker");
         }
@@ -138,6 +177,13 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         // Boopers
         booperLeft = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BOOPER-LEFT"));
         booperRight = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BOOPER-RIGHT"));
+        if (!booperLeft.isAvailable() || !booperRight.isAvailable()) {
+            booperLeft = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BOOPER-LEFT"));
+            booperRight = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BOOPER-RIGHT"));
+            if (booperLeft.isAvailable() || booperRight.isAvailable()) {
+                telemetry.log().add("NOTICE: Using CodeBot booper config");
+            }
+        }
         if (!booperLeft.isAvailable() || !booperRight.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize boopers");
         }
@@ -168,7 +214,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
 
         // Steady...
         tank.stop();
-        state = AUTO_STATE.INIT;
+        state = AUTO_STATE.first;
         timer = time + GYRO_TIMEOUT;
     }
 
@@ -222,12 +268,12 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                     state = AUTO_STATE.DRIVE_TO_SHOOT;
                 } else if (timer < time) {
                     gyro.disable();
-                    state = AUTO_STATE.DRIVE_TO_SHOOT;
+                    state = state.next();
                 }
                 break;
             case DRIVE_TO_SHOOT:
                 driveForward(SHOOT_DISTANCE);
-                state = AUTO_STATE.SHOOT;
+                state = state.next();
                 break;
             case SHOOT:
                 // Min is up
@@ -237,27 +283,30 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 drive = new DriveTo(new DriveToParams[]{param});
                 timer = time + SHOT_DELAY;
                 shots++;
+                state = state.next();
                 break;
             case SHOOT_WAIT:
                 // Max is down
                 blocker.max();
-                if (shots >= NUM_SHOTS) {
-                    state = AUTO_STATE.DRIVE_TO_BALL;
-                } else if (timer < time) {
-                    state = AUTO_STATE.SHOOT;
+                if (timer < time) {
+                    if (shots >= NUM_SHOTS) {
+                        state = state.next();
+                    } else {
+                        state = state.prev();
+                    }
                 }
                 break;
             case DRIVE_TO_BALL:
                 driveForward(BALL_DISTANCE);
-                state = AUTO_STATE.TURN_TO_TARGET;
+                state = state.next();
                 break;
             case BLIND_TURN:
                 // Bail if we have no gyro
                 if (!gyro.isReady()) {
-                    state = AUTO_STATE.DONE;
+                    state = AUTO_STATE.last;
                 }
                 turnAngle(BLIND_TURN);
-                state = AUTO_STATE.FIND_TARGET;
+                state = state.next();
                 break;
             case FIND_TARGET:
                 // TODO: Spin or something
@@ -265,37 +314,37 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 // Select a target when we have a vision fix
                 if (!vuforia.isStale()) {
                     target = closestTarget();
-                    state = AUTO_STATE.TURN_TO_DEST;
+                    state = state.next();
                 }
                 break;
             case TURN_TO_DEST:
                 if (gyro.isReady() && target >= 0) {
                     turnBearing(vuforia.bearing(destinationXY(target)));
-                    state = AUTO_STATE.DRIVE_TO_DEST;
+                    state = state.next();
                 }
                 break;
             case DRIVE_TO_DEST:
                 if (target >= 0) {
                     driveForward(vuforia.distance(destinationXY(target)));
                 }
-                state = AUTO_STATE.TURN_TO_TARGET;
+                state = state.next();
                 break;
             case TURN_TO_TARGET:
                 if (gyro.isReady() && target >= 0) {
                     turnBearing(vuforia.bearing(target));
-                    state = AUTO_STATE.ALIGN_AT_TARGET;
+                    state = state.next();
                 }
                 break;
             case ALIGN_AT_TARGET:
                 // TODO: Some sort of turn and approach operation
                 if (vuforia.getVisible(config[target].name)) {
-                    state = AUTO_STATE.CHECK_COLOR;
+                    state = state.next();
                 }
                 break;
             case CHECK_COLOR:
                 // TODO: Check the color sensor for beacon configuration
                 beacon = Field.AllianceColor.BLUE;
-                state = AUTO_STATE.PRESS_BEACON;
+                state = state.next();
                 break;
             case PRESS_BEACON:
                 // TODO: This depends on where the color sensor is mounted
@@ -305,18 +354,18 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                     booperRight.max();
                 }
                 timer = time + BEACON_DELAY;
-                state = AUTO_STATE.BEACON_WAIT;
+                state = state.next();
                 break;
             case BEACON_WAIT:
                 if (timer < time) {
-                    state = AUTO_STATE.BACK_AWAY;
+                    state = state.next();
                 }
                 break;
             case BACK_AWAY:
                 booperLeft.min();
                 booperRight.min();
                 driveForward(-DESTINATION_OFFSET);
-                state = AUTO_STATE.DONE;
+                state = state.next();
                 break;
             case DONE:
                 // Nothing
