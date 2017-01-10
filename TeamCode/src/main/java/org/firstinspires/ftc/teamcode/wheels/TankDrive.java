@@ -13,9 +13,11 @@ public class TankDrive {
     private boolean disabled = true;
     private boolean teleop = false;
     private double speedScale = 1.0;
+    private int encoderIndex = 0;
 
-    public TankDrive(HardwareMap map, TankMotor[] motors) {
+    public TankDrive(HardwareMap map, TankMotor[] motors, int index) {
         this.teleop = false;
+        this.encoderIndex = index;
         try {
             if (motors.length < MIN_MOTORS) {
                 throw new ArrayIndexOutOfBoundsException("TankDrive must configure at least " + MIN_MOTORS + " motors: " + motors.length);
@@ -38,6 +40,10 @@ public class TankDrive {
         return motors != null;
     }
 
+    public void setEncoderIndex(int index) {
+        this.encoderIndex = index;
+    }
+
     public int getEncoder(int index) {
         if (!isAvailable()) {
             return 0;
@@ -49,7 +55,7 @@ public class TankDrive {
     }
 
     public int getEncoder() {
-        return getEncoder(0);
+        return getEncoder(encoderIndex);
     }
 
     public int getEncoder(String name) {

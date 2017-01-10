@@ -12,7 +12,6 @@ import org.firstinspires.ftc.teamcode.actuators.Motor;
 import org.firstinspires.ftc.teamcode.wheels.MotorSide;
 import org.firstinspires.ftc.teamcode.actuators.ServoFTC;
 import org.firstinspires.ftc.teamcode.wheels.TankDrive;
-import org.firstinspires.ftc.teamcode.wheels.TankMotor;
 import org.firstinspires.ftc.teamcode.vuforia.VuforiaFTC;
 import org.firstinspires.ftc.teamcode.vuforia.VuforiaTarget;
 import org.firstinspires.ftc.teamcode.config.MotorConfigs;
@@ -98,22 +97,22 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         DONE;
 
         // Private static copy to avoid repeated calls to values()
-        private static AUTO_STATE[] vals = values();
+        private static AUTO_STATE[] values = values();
 
         public AUTO_STATE prev() {
             int i = ordinal() - 1;
             if (i < 0) {
                 throw new NoSuchElementException();
             }
-            return vals[i];
+            return values[i];
         }
 
         public AUTO_STATE next() {
             int i = ordinal() + 1;
-            if (i >= vals.length) {
+            if (i >= values.length) {
                 throw new NoSuchElementException();
             }
-            return vals[i];
+            return values[i];
         }
 
         public static final AUTO_STATE first = INIT;
@@ -134,11 +133,9 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Drive motors
-        TankMotor motors[] = WheelMotorConfigs.FinalBot();
-        tank = new TankDrive(hardwareMap, motors);
+        tank = new TankDrive(hardwareMap, WheelMotorConfigs.FinalBot(), WheelMotorConfigs.FinalBotEncoder);
         if (!tank.isAvailable()) {
-            motors = WheelMotorConfigs.CodeBot();
-            tank = new TankDrive(hardwareMap, motors);
+            tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(), WheelMotorConfigs.FinalBotEncoder);
             if (tank.isAvailable()) {
                 telemetry.log().add("NOTICE: Using CodeBot wheel config");
             }

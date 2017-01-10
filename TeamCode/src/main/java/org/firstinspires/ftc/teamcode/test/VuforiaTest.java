@@ -9,7 +9,6 @@ import org.firstinspires.ftc.teamcode.driveto.DriveToParams;
 import org.firstinspires.ftc.teamcode.sensors.Gyro;
 import org.firstinspires.ftc.teamcode.wheels.MotorSide;
 import org.firstinspires.ftc.teamcode.wheels.TankDrive;
-import org.firstinspires.ftc.teamcode.wheels.TankMotor;
 import org.firstinspires.ftc.teamcode.vuforia.VuforiaFTC;
 import org.firstinspires.ftc.teamcode.config.VuforiaConfigs;
 import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
@@ -21,7 +20,6 @@ public class VuforiaTest extends OpMode implements DriveToListener {
     // Driving constants
     private static final float GYRO_MIN_UPDATE_INTERVAL = 1.0f;
     private static final float ENCODER_PER_MM = 3.2f;
-    private static final int ENCODER_INDEX = 2;
     private static final float SPEED_TURN = 0.1f;
     private static final float SPEED_TURN_FAST = 0.5f;
     private static final int SPEED_TURN_THRESHOLD = 60;
@@ -63,8 +61,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         }
 
         // Drive motors
-        TankMotor motors[] = WheelMotorConfigs.CodeBot();
-        tank = new TankDrive(hardwareMap, motors);
+        tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(), WheelMotorConfigs.CodeBotEncoder);
         if (!tank.isAvailable()) {
             // Note that we could retry with different names to support multiple configs/robots
             telemetry.log().add("ERROR: Unable to initalize motors");
@@ -114,7 +111,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         // Driver feedback
         vuforia.display(telemetry);
         telemetry.addData("Target (" + lastTarget + ")", lastDistance + "mm @ " + lastBearing + "°");
-        telemetry.addData("Encoder", tank.getEncoder(ENCODER_INDEX));
+        telemetry.addData("Encoder", tank.getEncoder());
         if (!gyro.isReady()) {
             telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d" + (int) time);
         } else {
@@ -254,7 +251,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
                 value = gyro.getHeading();
                 break;
             case ENCODER:
-                value = tank.getEncoder(ENCODER_INDEX);
+                value = tank.getEncoder();
                 break;
         }
         return value;
@@ -295,7 +292,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         tank.setTeleop(false);
         DriveToParams param = new DriveToParams(this, SENSOR_TYPE.ENCODER);
         int ticks = (int) ((float) -distance * ENCODER_PER_MM);
-        param.lessThan(ticks + tank.getEncoder(ENCODER_INDEX) - OVERRUN_ENCODER);
+        param.lessThan(ticks + tank.getEncoder() - OVERRUN_ENCODER);
         drive = new DriveTo(new DriveToParams[]{param});
     }
 }
