@@ -21,13 +21,8 @@ import org.firstinspires.ftc.teamcode.classes.VuforiaTarget;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Vuforia Auto", group = "Test")
 public class VuforiaAuto extends OpMode implements DriveToListener {
 
-    // Field, camera and robot constants
-    private static final float MM_PER_INCH = 25.4f;
-    private static final int BOT_WIDTH = (int) (18 * MM_PER_INCH);
-    private static final int FIELD_WIDTH = (int) ((12 * 12 - 2) * MM_PER_INCH);
-    private static final float GYRO_MIN_UPDATE_INTERVAL = 1.0f;
-
     // Driving constants
+    private static final float GYRO_MIN_UPDATE_INTERVAL = 1.0f;
     private static final float ENCODER_PER_MM = 3.2f;
     private static final int ENCODER_INDEX = 2;
     private static final float SPEED_TURN = 0.1f;
@@ -59,45 +54,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private final static int FULL_CIRCLE = 360;
 
     // Tracking config
-    private static final String CONFIG_ASSET = "FTC_2016-17";
-    private static final int CONFIG_TARGET_NUM = 4;
-    // TODO: This location and rotation is imaginary, but should at least be close.
-    private static final VuforiaTarget CONFIG_PHONE = new VuforiaTarget(
-            "Phone", null,
-            new float[]{BOT_WIDTH / 2, 0, 0},
-            new float[]{-90, 0, 0},
-            AxesOrder.YZY
-    );
-    // TODO: These locations are imaginary. We need to find the real ones for valid x/y navigation.
-    private static final float[] TARGETS_ROTATION_RED = {-90, 270, 0};
-    private static final float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
-    private static final float[] TARGETS_OFFSET_RED = {250, 0, 0};
-    private static final float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
-    private static final int TARGETS_Y_BLUE = FIELD_WIDTH / 2;
-    private static final int TARGETS_X_RED = -FIELD_WIDTH / 2;
-    private static final int TARGETS_OFFSET_NEAR = (int) (12 * MM_PER_INCH);
-    private static final int TARGETS_OFFSET_FAR = (int) (36 * MM_PER_INCH);
-    private static final VuforiaTarget[] CONFIG = {new VuforiaTarget(
-            "Wheels", AllianceColor.Color.BLUE,
-            new float[]{TARGETS_OFFSET_NEAR, TARGETS_Y_BLUE, 0},
-            TARGETS_OFFSET_BLUE,
-            TARGETS_ROTATION_BLUE
-    ), new VuforiaTarget(
-            "Tools", AllianceColor.Color.RED,
-            new float[]{TARGETS_X_RED, TARGETS_OFFSET_FAR, 0},
-            TARGETS_OFFSET_RED,
-            TARGETS_ROTATION_RED
-    ), new VuforiaTarget(
-            "LEGO", AllianceColor.Color.BLUE,
-            new float[]{-TARGETS_OFFSET_FAR, TARGETS_Y_BLUE, 0},
-            TARGETS_OFFSET_BLUE,
-            TARGETS_ROTATION_BLUE
-    ), new VuforiaTarget(
-            "Gears", AllianceColor.Color.RED,
-            new float[]{TARGETS_X_RED, -TARGETS_OFFSET_NEAR, 0},
-            TARGETS_OFFSET_RED,
-            TARGETS_ROTATION_RED
-    )};
+    private VuforiaTarget[] config;
+    private VuforiaTarget configPhone;
 
     // Devices and subsystems
     private VuforiaFTC vuforia;
@@ -156,11 +114,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Drive motors
-        TankMotor motors[] = new TankMotor[4];
-        motors[0] = new TankMotor("fl", MotorSide.LEFT);
-        motors[1] = new TankMotor("fr", MotorSide.RIGHT, true);
-        motors[2] = new TankMotor("bl", MotorSide.LEFT, true); // Encoder wheel
-        motors[3] = new TankMotor("br", MotorSide.RIGHT);
+        TankMotor motors[] = WheelMotorConfigs.CodeBot(2016);
         tank = new TankDrive(hardwareMap, motors);
         if (!tank.isAvailable()) {
             // Note that we could retry with different names to support multiple configs/robots
@@ -198,7 +152,10 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Vuforia
-        vuforia = new VuforiaFTC(CONFIG_ASSET, CONFIG_TARGET_NUM, CONFIG, CONFIG_PHONE);
+        config = VuforiaConfigs.Field(2016);
+        configPhone = VuforiaConfigs.Bot(2016);
+        vuforia = new VuforiaFTC(VuforiaConfigs.AssetName(2016), VuforiaConfigs.TargetCount(2016),
+                config, configPhone);
         vuforia.init();
 
         // Wait for the game to begin
@@ -341,7 +298,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 break;
             case ALIGN_AT_TARGET:
                 // TODO: Some sort of turn and approach operation
-                if (vuforia.getVisible(CONFIG[target].name)) {
+                if (vuforia.getVisible(config[target].name)) {
                     state = AUTO_STATE.CHECK_COLOR;
                 }
                 break;
@@ -491,8 +448,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private int closestTarget() {
         int index = -1;
         int min = Integer.MAX_VALUE;
-        for (int i = 0; i < CONFIG.length; i++) {
-            int distance = vuforia.distance(CONFIG[i].adjusted[0], CONFIG[i].adjusted[1]);
+        for (int i = 0; i < config.length; i++) {
+            int distance = vuforia.distance(config[i].adjusted[0], config[i].adjusted[1]);
             if (distance < min) {
                 min = distance;
                 index = i;
@@ -502,9 +459,9 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     }
 
     private int[] destinationXY(int index) {
-        int[] destination = new int[]{CONFIG[index].adjusted[0], CONFIG[index].adjusted[1]};
+        int[] destination = new int[]{config[index].adjusted[0], config[index].adjusted[1]};
         // TODO: This is imaginary and must be calibrated before use
-        if (CONFIG[index].color.equals(AllianceColor.Color.RED)) {
+        if (config[index].color.equals(AllianceColor.Color.RED)) {
             destination[0] -= DESTINATION_OFFSET;
         } else {
             destination[1] -= DESTINATION_OFFSET;
