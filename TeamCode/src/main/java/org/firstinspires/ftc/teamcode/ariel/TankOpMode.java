@@ -9,15 +9,15 @@ import com.qualcomm.robotcore.util.Range;
  */
 public abstract class TankOpMode extends OpMode {
 
-    protected String frontLeftMotorName;
-    protected String frontRightMotorName;
+    protected final String frontLeftMotorName;
+    protected final String frontRightMotorName;
     protected String backLeftMotorName;
     protected String backRightMotorName;
     protected DcMotor frontLeftMotor;
     protected DcMotor frontRightMotor;
     protected DcMotor backLeftMotor;
     protected DcMotor backRightMotor;
-    protected boolean hasTwoMotors;
+    protected final boolean hasTwoMotors;
 
     //When making constructors in other methods, you MUST
     //delete the parameters for the method to work

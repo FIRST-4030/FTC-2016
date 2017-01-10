@@ -10,13 +10,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", group = "AutoMode")
 public class DriveForwardAuto extends LinearOpMode {
 
-    private DcMotor leftMotor;
-    private DcMotor rightMotor;
-    private DcMotor shooterMotor;
-    private Servo blocker;
-    private Servo leftBooper;
-    private Servo rightBooper;
-
     private static final int SCORE_INCR = -1850;
     private static final int BALL_INCR = -1100;
     public static final int SHOOTER_INCR = 3700;
@@ -35,12 +28,12 @@ public class DriveForwardAuto extends LinearOpMode {
      */
     @Override
     public void runOpMode() throws InterruptedException {
-        leftMotor = hardwareMap.dcMotor.get("left-wheel-motor");
-        rightMotor = hardwareMap.dcMotor.get("right-wheel-motor");
-        blocker = hardwareMap.servo.get("blocker");
-        shooterMotor = hardwareMap.dcMotor.get("shooter-motor");
-        leftBooper = hardwareMap.servo.get("left-booper");
-        rightBooper = hardwareMap.servo.get("right-booper");
+        DcMotor leftMotor = hardwareMap.dcMotor.get("left-wheel-motor");
+        DcMotor rightMotor = hardwareMap.dcMotor.get("right-wheel-motor");
+        Servo blocker = hardwareMap.servo.get("blocker");
+        DcMotor shooterMotor = hardwareMap.dcMotor.get("shooter-motor");
+        Servo leftBooper = hardwareMap.servo.get("left-booper");
+        Servo rightBooper = hardwareMap.servo.get("right-booper");
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
         rightBooper.setDirection(Servo.Direction.REVERSE);
 

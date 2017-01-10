@@ -3,9 +3,7 @@ package org.firstinspires.ftc.teamcode.test;
 import com.qualcomm.hardware.hitechnic.HiTechnicNxtGyroSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.LightSensor;
 
 /**
@@ -22,8 +20,6 @@ public class LegacySensorTest extends LinearOpMode {
         LightSensor lightSensor;  // Hardware Device Object
         int xVal = 0, yVal = 0, zVal = 0;     // Gyro rate Values
         int heading = 0;              // Gyro integrated heading
-        boolean lastResetState = false;
-        boolean curResetState  = false;
 
         // get a reference to a Modern Robotics GyroSensor object.
         gyro = (HiTechnicNxtGyroSensor) hardwareMap.gyroSensor.get("gyro");
@@ -43,7 +39,7 @@ public class LegacySensorTest extends LinearOpMode {
 
         // bPrevState and bCurrState represent the previous and current state of the button.
         boolean bPrevState = false;
-        boolean bCurrState = false;
+        boolean bCurrState;
 
         // bLedOn represents the state of the LED.
         boolean bLedOn = true;
@@ -80,7 +76,7 @@ public class LegacySensorTest extends LinearOpMode {
             bCurrState = gamepad1.x;
 
             // check for button state transitions.
-            if ((bCurrState == true) && (bCurrState != bPrevState))  {
+            if ((bCurrState) && (bCurrState != bPrevState))  {
 
                 // button is transitioning to a pressed state.  Toggle LED
                 bLedOn = !bLedOn;

@@ -8,15 +8,15 @@ import com.qualcomm.robotcore.hardware.DcMotorController;
  */
 public abstract class CorrectionalMotor extends RegulatedMotor {
 
-    protected double deadZone;
+    protected final double deadZone;
     protected double accumErr;
     protected double lastErr;
-    protected double fullSpd;
+    protected final double fullSpd;
 
-    protected double p;
-    protected double i;
-    protected double d;
-    protected double conversion;
+    protected final double p;
+    protected final double i;
+    protected final double d;
+    protected final double conversion;
 
     public CorrectionalMotor(DcMotorController controller, int portNumber, double deadZone, double p, double i, double d) {
         super(controller, portNumber);

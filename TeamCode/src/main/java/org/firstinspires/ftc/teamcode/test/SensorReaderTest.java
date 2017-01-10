@@ -1,9 +1,5 @@
 package org.firstinspires.ftc.teamcode.test;
 
-import android.app.Activity;
-import android.graphics.Color;
-import android.view.View;
-
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cCompassSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
@@ -28,7 +24,7 @@ public class SensorReaderTest extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
 
         // Emulate a toggle button for the color sensor LED
-        boolean ledButtonState = false;
+        boolean ledButtonState;
         boolean ledButtonStateLast = false;
 
         // Retry timer for LED modes
@@ -79,7 +75,7 @@ public class SensorReaderTest extends LinearOpMode {
         }
 
         // Init gyro
-        ModernRoboticsI2cGyro gyro = null;
+        ModernRoboticsI2cGyro gyro;
         try {
             gyro = (ModernRoboticsI2cGyro) hardwareMap.gyroSensor.get("gyro");
             gyro.resetDeviceConfigurationForOpMode();
@@ -114,7 +110,7 @@ public class SensorReaderTest extends LinearOpMode {
         }
 
         // Init IR
-        IrSeekerSensor ir = null;
+        IrSeekerSensor ir;
         try {
             ir = hardwareMap.irSeekerSensor.get("ir");
             enableIR = true;
@@ -145,7 +141,7 @@ public class SensorReaderTest extends LinearOpMode {
             // Toggle the color sensor LED when X is pressed
             ledButtonState = ledButtonStateLast;
             ledButtonStateLast = gamepad1.x | gamepad2.x;
-            if ((ledButtonStateLast == true) && (ledButtonStateLast != ledButtonState)) {
+            if ((ledButtonStateLast) && (ledButtonStateLast != ledButtonState)) {
                 ledOn = !ledOn;
             }
 

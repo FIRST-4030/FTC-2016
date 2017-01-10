@@ -38,7 +38,7 @@ public abstract class FourWheelAutoMethods extends OpMode {
         runMotors(0, 0);
     }
 
-    public void driveToTime(double left, double right, long millis) throws InterruptedException {
+    public void driveToTime(double left, double right, long millis) {
         long startTime = System.currentTimeMillis();
         while(System.currentTimeMillis() - startTime < millis) {
             runMotors(left, right);

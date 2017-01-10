@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.wheels;
 
 public enum MotorSide {
     LEFT(0), RIGHT(1);
-    private int value;
+    private final int value;
 
     MotorSide(int value) {
         this.value = value;

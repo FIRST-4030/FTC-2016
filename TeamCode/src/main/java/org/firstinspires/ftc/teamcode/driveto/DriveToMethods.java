@@ -11,8 +11,8 @@ public abstract class DriveToMethods {
     private long startTime;
     private boolean isRunning;
     private long timeOutMillis = 10000;
-    protected DcMotor[] allLeftMotors;
-    protected DcMotor[] allRightMotors;
+    protected final DcMotor[] allLeftMotors;
+    protected final DcMotor[] allRightMotors;
 
     public DriveToMethods(DcMotor[] leftMotors, DcMotor[] rightMotors) {
         allLeftMotors = leftMotors;

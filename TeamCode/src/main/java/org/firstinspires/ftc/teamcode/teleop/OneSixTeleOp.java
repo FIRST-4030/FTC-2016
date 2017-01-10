@@ -29,14 +29,10 @@ public class OneSixTeleOp extends TankOpMode {
     public static final int SHOOTER_INCR = 3700;
 
     private boolean isA1Pressed = false;
-    private boolean isA2Pressed = false;
-    private boolean isBackPressed = false;
-    private boolean isCollectorOn = false;
     private boolean inFireRoutine = false;
     private int shooterEncoderGoal;
     private double leftBooperPosition;
     private double rightBooperPosition;
-    private double blockerPosition;
 
     public OneSixTeleOp() {
         super("left-wheel-motor", "right-wheel-motor");
@@ -55,9 +51,9 @@ public class OneSixTeleOp extends TankOpMode {
         setLeftBooperPosition(0);
         setRightBooperPosition(0);
         blocker.setPosition(BLOCKER_DOWN);
-        blockerPosition = 1.0;
+        double blockerPosition = 1.0;
 
-        isCollectorOn = false;
+        boolean isCollectorOn = false;
     }
 
     public void loop() {
@@ -68,10 +64,10 @@ public class OneSixTeleOp extends TankOpMode {
         //Emergency out and collector off
         if(gamepad2.back) {
             collectorMotor.setPower(-COLLECTOR_IN);
-            isBackPressed = true;
+            boolean isBackPressed = true;
         } else if(gamepad2.a) {
             collectorMotor.setPower(0.0);
-            isA2Pressed = true;
+            boolean isA2Pressed = true;
         } else {
             collectorMotor.setPower(COLLECTOR_IN);
         }

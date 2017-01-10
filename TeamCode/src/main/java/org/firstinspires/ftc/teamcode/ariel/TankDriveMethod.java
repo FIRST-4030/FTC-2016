@@ -58,7 +58,7 @@ import com.qualcomm.robotcore.util.Range;
 
 public class TankDriveMethod extends OpMode {
     /* Declare OpMode members. */
-    private ElapsedTime runtime = new ElapsedTime();
+    private final ElapsedTime runtime = new ElapsedTime();
     protected DcMotor frontLeftMotor;
     protected DcMotor frontRightMotor;
     protected DcMotor backLeftMotor;
