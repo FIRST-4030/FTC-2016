@@ -317,8 +317,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             case TURN_TO_DEST:
                 if (gyro.isReady() && target >= 0) {
                     turnBearing(vuforia.bearing(destinationXY(target)));
-                    state = state.next();
                 }
+                state = state.next();
                 break;
             case DRIVE_TO_DEST:
                 if (target >= 0) {
@@ -329,8 +329,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             case TURN_TO_TARGET:
                 if (gyro.isReady() && target >= 0) {
                     turnBearing(vuforia.bearing(target));
-                    state = state.next();
                 }
+                state = state.next();
                 break;
             case ALIGN_AT_TARGET:
                 // TODO: Some sort of turn and approach operation
