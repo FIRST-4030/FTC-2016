@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.config;
 
-import org.firstinspires.ftc.teamcode.classes.MotorConfig;
+import org.firstinspires.ftc.teamcode.actuators.MotorConfig;
 
 public class MotorConfigs {
     public static MotorConfig CodeBot() {

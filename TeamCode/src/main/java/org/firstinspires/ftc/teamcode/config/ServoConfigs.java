@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.config;
 
-import org.firstinspires.ftc.teamcode.classes.ServoFTCConfig;
+import org.firstinspires.ftc.teamcode.actuators.ServoFTCConfig;
 
 public class ServoConfigs {
     public static ServoFTCConfig CodeBot(String name) {

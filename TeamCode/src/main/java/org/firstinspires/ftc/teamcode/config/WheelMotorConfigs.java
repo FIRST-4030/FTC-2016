@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.config;
 
-import org.firstinspires.ftc.teamcode.classes.MotorSide;
-import org.firstinspires.ftc.teamcode.classes.TankMotor;
+import org.firstinspires.ftc.teamcode.wheels.MotorSide;
+import org.firstinspires.ftc.teamcode.wheels.TankMotor;
 
 public class WheelMotorConfigs {
     public static TankMotor[] CodeBot() {
