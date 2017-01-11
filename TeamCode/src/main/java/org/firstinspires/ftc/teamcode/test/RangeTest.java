@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
 import org.firstinspires.ftc.teamcode.sensors.Gyro;
 import org.firstinspires.ftc.teamcode.sensors.Range;
 import org.firstinspires.ftc.teamcode.wheels.MotorSide;
@@ -34,12 +35,7 @@ class RangeTest extends OpMode {
         }
 
         // Drive motors
-        TankMotor motors[] = new TankMotor[4];
-        motors[0] = new TankMotor("fl", MotorSide.LEFT);
-        motors[1] = new TankMotor("fr", MotorSide.RIGHT, true);
-        motors[2] = new TankMotor("bl", MotorSide.LEFT, true);
-        motors[3] = new TankMotor("br", MotorSide.RIGHT);
-        tank = new TankDrive(hardwareMap, motors);
+        tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(), WheelMotorConfigs.CodeBotEncoder);
         if (!tank.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize motors");
         }
