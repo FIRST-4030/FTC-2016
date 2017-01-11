@@ -33,19 +33,19 @@ public class VuforiaConfigs {
 
         return new VuforiaTarget[]{new VuforiaTarget(
                 "Wheels", Field.AllianceColor.BLUE,
-                new float[]{0, 0, 0},
+                new float[]{X_BLUE, -OFFSET_NEAR, 0},
                 ADJUST_BLUE, ROTATION_BLUE
         ), new VuforiaTarget(
                 "Tools", Field.AllianceColor.RED,
-                new float[]{0, 0, 0},
+                new float[]{OFFSET_FAR, Y_RED, 0},
                 ADJUST_RED, ROTATION_RED
         ), new VuforiaTarget(
                 "LEGO", Field.AllianceColor.BLUE,
-                new float[]{0, 0, 0},
+                new float[]{X_BLUE, OFFSET_FAR, 0},
                 ADJUST_BLUE, ROTATION_BLUE
         ), new VuforiaTarget(
                 "Gears", Field.AllianceColor.RED,
-                new float[]{0, 0, 0},
+                new float[]{-OFFSET_NEAR, Y_RED, 0},
                 ADJUST_RED, ROTATION_RED
         )};
     }
