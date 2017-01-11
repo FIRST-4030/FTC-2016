@@ -310,7 +310,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
 
                 // Select a target when we have a vision fix
                 if (!vuforia.isStale()) {
-                    target = closestTarget();
+                    // TODO: This needs to match our alliance color (probably user-selected)
+                    target = closestTarget(Field.AllianceColor.BLUE);
                     state = state.next();
                 }
                 break;
@@ -469,14 +470,16 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         drive = new DriveTo(new DriveToParams[]{param});
     }
 
-    private int closestTarget() {
+    private int closestTarget(Field.AllianceColor color) {
         int index = -1;
         int min = Integer.MAX_VALUE;
         for (int i = 0; i < config.length; i++) {
-            int distance = vuforia.distance(config[i].adjusted[0], config[i].adjusted[1]);
-            if (distance < min) {
-                min = distance;
-                index = i;
+            if (config[i].color.equals(color)) {
+                int distance = vuforia.distance(config[i].adjusted[0], config[i].adjusted[1]);
+                if (distance < min) {
+                    min = distance;
+                    index = i;
+                }
             }
         }
         return index;
