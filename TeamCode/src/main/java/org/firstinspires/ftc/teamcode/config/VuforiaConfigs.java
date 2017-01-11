@@ -21,36 +21,32 @@ public class VuforiaConfigs {
     static public VuforiaTarget[] Field() {
         // TODO: These locations and rotations are imaginary.
         // We need to find the real ones for valid x/y navigation.
-        float[] TARGETS_ROTATION_RED = {-90, 270, 0};
-        float[] TARGETS_ROTATION_BLUE = {90, 0, 0};
-        float[] TARGETS_OFFSET_RED = {250, 0, 0};
-        float[] TARGETS_OFFSET_BLUE = {0, -250, 0};
+        float[] ROTATION_RED = {90, 0, 0};
+        float[] ROTATION_BLUE = {90, 270, 0};
+        float[] ADJUST_RED = {0, 0, 0};
+        float[] ADJUST_BLUE = {0, 0, 0};
 
-        int TARGETS_Y_BLUE = Field.FIELD_WIDTH / 2;
-        int TARGETS_X_RED = -Field.FIELD_WIDTH / 2;
-        int TARGETS_OFFSET_NEAR = (int) (12 * Field.MM_PER_INCH);
-        int TARGETS_OFFSET_FAR = (int) (36 * Field.MM_PER_INCH);
+        int X_BLUE = Field.FIELD_WIDTH / 2;
+        int Y_RED = Field.FIELD_WIDTH / 2;
+        int OFFSET_NEAR = (int) (12 * Field.MM_PER_INCH);
+        int OFFSET_FAR = (int) (36 * Field.MM_PER_INCH);
 
         return new VuforiaTarget[]{new VuforiaTarget(
                 "Wheels", Field.AllianceColor.BLUE,
-                new float[]{TARGETS_OFFSET_NEAR, TARGETS_Y_BLUE, 0},
-                TARGETS_OFFSET_BLUE,
-                TARGETS_ROTATION_BLUE
+                new float[]{0, 0, 0},
+                ADJUST_BLUE, ROTATION_BLUE
         ), new VuforiaTarget(
                 "Tools", Field.AllianceColor.RED,
-                new float[]{TARGETS_X_RED, TARGETS_OFFSET_FAR, 0},
-                TARGETS_OFFSET_RED,
-                TARGETS_ROTATION_RED
+                new float[]{0, 0, 0},
+                ADJUST_RED, ROTATION_RED
         ), new VuforiaTarget(
                 "LEGO", Field.AllianceColor.BLUE,
-                new float[]{-TARGETS_OFFSET_FAR, TARGETS_Y_BLUE, 0},
-                TARGETS_OFFSET_BLUE,
-                TARGETS_ROTATION_BLUE
+                new float[]{0, 0, 0},
+                ADJUST_BLUE, ROTATION_BLUE
         ), new VuforiaTarget(
                 "Gears", Field.AllianceColor.RED,
-                new float[]{TARGETS_X_RED, -TARGETS_OFFSET_NEAR, 0},
-                TARGETS_OFFSET_RED,
-                TARGETS_ROTATION_RED
+                new float[]{0, 0, 0},
+                ADJUST_RED, ROTATION_RED
         )};
     }
 }

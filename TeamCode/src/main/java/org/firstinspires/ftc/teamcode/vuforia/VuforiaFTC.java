@@ -67,6 +67,7 @@ public class VuforiaFTC {
 
     // Numeric constants
     private static final int FULL_CIRCLE = 360;
+    private static final int HEADING_OFFSET = -FULL_CIRCLE / 4;
 
     // Tracking config
     private final String CONFIG_ASSET;
@@ -289,9 +290,11 @@ public class VuforiaFTC {
         if (orientation[0] < 0) {
             heading -= FULL_CIRCLE / 2;
         }
-        if (heading < 0) {
-            heading += FULL_CIRCLE;
-        }
+
+        // Adjust to make red targets 0° and blue targets 90°
+        heading += HEADING_OFFSET;
+        // Deal with the cartisian coordinates (i.e. invert the heading)
+        heading = (FULL_CIRCLE - heading + FULL_CIRCLE) % FULL_CIRCLE;
         return heading;
     }
 
