@@ -104,6 +104,9 @@ public class TankDrive {
     }
 
     public void stop() {
+        if (!isAvailable()) {
+            return;
+        }
         for (TankMotor motor : motors) {
             motor.motor.setPower(0.0d);
         }
