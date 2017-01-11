@@ -113,7 +113,7 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         telemetry.addData("Target (" + lastTarget + ")", lastDistance + "mm @ " + lastBearing + "°");
         telemetry.addData("Encoder", tank.getEncoder());
         if (!gyro.isReady()) {
-            telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d" + (int) time);
+            telemetry.addData("Gyro", "Calibrating (DO NOT DRIVE): %d", (int) time);
         } else {
             telemetry.addData("Gyro Abs/Rel", gyro.getHeading() + "°/" + gyro.getHeadingRaw() + "°");
         }
