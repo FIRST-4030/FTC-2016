@@ -65,7 +65,7 @@ public class VuforiaFTC {
     public static final AxesReference AXES_REFERENCE = AxesReference.EXTRINSIC;
     public static final AngleUnit ANGLE_UNIT = AngleUnit.DEGREES;
 
-    // Numeric constants
+    // Cartesian heading constants
     private static final int FULL_CIRCLE = 360;
     private static final int HEADING_OFFSET = -FULL_CIRCLE / 4;
 
@@ -290,12 +290,7 @@ public class VuforiaFTC {
         if (orientation[0] < 0) {
             heading -= FULL_CIRCLE / 2;
         }
-
-        // Adjust to make red targets 0° and blue targets 90°
-        heading += HEADING_OFFSET;
-        // Deal with the cartisian coordinates (i.e. invert the heading)
-        heading = (FULL_CIRCLE - heading + FULL_CIRCLE) % FULL_CIRCLE;
-        return heading;
+        return normalizeHeading(cartesianToCardinal(heading));
     }
 
     /**
@@ -307,7 +302,7 @@ public class VuforiaFTC {
      * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
      */
     public int bearing(int x, int y) {
-        return (int) bearing(new double[]{getX(), getY()}, new double[]{x, y});
+        return bearing(new int[]{getX(), getY()}, new int[]{x, y});
     }
 
     /**
@@ -341,7 +336,7 @@ public class VuforiaFTC {
      * {@link #isStale() isStale()} or {@link #getTimestamp() getTimestamp()}
      */
     public int distance(int x, int y) {
-        return (int) distance(new double[]{getX(), getY()}, new double[]{x, y});
+        return distance(new int[]{getX(), getY()}, new int[]{x, y});
     }
 
     /**
@@ -380,15 +375,15 @@ public class VuforiaFTC {
 
     // Bearing from x1,y1 to x2,y2 in degrees
     // Motion from south to north is correlated with increasing Y components in field locations
-    private double bearing(double[] src, double[] dest) {
+    private int bearing(int[] src, int[] dest) {
         double bearing = Math.atan2(dest[1] - src[1], dest[0] - src[0]);
         bearing = Math.toDegrees(bearing);
-        return (bearing + FULL_CIRCLE + (FULL_CIRCLE / 2)) % FULL_CIRCLE;
+        return normalizeHeading(cartesianToCardinal((int) bearing));
     }
 
     // Distance from x1,y1 to x2,y2 in field location units (millimeters)
-    private double distance(double[] src, double[] dest) {
-        return Math.hypot((dest[1] - src[1]), (dest[0] - src[0]));
+    private int distance(int[] src, int[] dest) {
+        return (int) Math.hypot((dest[1] - src[1]), (dest[0] - src[0]));
     }
 
     // It's like a macro, but for Java
@@ -418,5 +413,13 @@ public class VuforiaFTC {
         OpenGLMatrix location = positionRotationMatrix(CONFIG_TARGETS[index].raw,
                 CONFIG_TARGETS[index].rotation, CONFIG_TARGETS[index].axesOrder);
         trackable.setLocation(location);
+    }
+
+    private int normalizeHeading(int heading) {
+        return ((heading % FULL_CIRCLE) + FULL_CIRCLE) % FULL_CIRCLE;
+    }
+
+    private int cartesianToCardinal(int heading) {
+        return FULL_CIRCLE - (heading + HEADING_OFFSET);
     }
 }
