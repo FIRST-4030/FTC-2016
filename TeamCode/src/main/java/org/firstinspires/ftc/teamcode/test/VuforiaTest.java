@@ -61,11 +61,8 @@ public class VuforiaTest extends OpMode implements DriveToListener {
         }
 
         // Drive motors
-        tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(), WheelMotorConfigs.CodeBotEncoder);
-        if (!tank.isAvailable()) {
-            // Note that we could retry with different names to support multiple configs/robots
-            telemetry.log().add("ERROR: Unable to initalize motors");
-        }
+        tank = new WheelMotorConfigs().init(hardwareMap, telemetry);
+        tank.stop();
 
         // Vuforia
         vuforia = new VuforiaFTC(VuforiaConfigs.AssetName, VuforiaConfigs.TargetCount,

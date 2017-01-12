@@ -144,59 +144,20 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Drive motors
-        tank = new TankDrive(hardwareMap, WheelMotorConfigs.FinalBot(), WheelMotorConfigs.FinalBotEncoder);
-        if (!tank.isAvailable()) {
-            tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(),
-                    WheelMotorConfigs.CodeBotEncoder, WheelMotorConfigs.CodeBotEncoderScale);
-            if (tank.isAvailable()) {
-                telemetry.log().add("NOTICE: Using CodeBot wheel config");
-            }
-        }
-        if (!tank.isAvailable()) {
-            telemetry.log().add("ERROR: Unable to initalize wheels");
-        }
+        tank = new WheelMotorConfigs().init(hardwareMap, telemetry);
+        tank.stop();
 
         // Shooter motor
-        shooter = new Motor(hardwareMap, MotorConfigs.FinalBot());
-        if (!shooter.isAvailable()) {
-            shooter = new Motor(hardwareMap, MotorConfigs.CodeBot());
-            if (shooter.isAvailable()) {
-                telemetry.log().add("NOTICE: Using CodeBot shooter config");
-            }
-        }
-        if (!shooter.isAvailable()) {
-            telemetry.log().add("ERROR: Unable to initalize shooter");
-        }
+        shooter = new MotorConfigs().init(hardwareMap, telemetry, "SHOOTER");
         shooter.stop();
 
-        // Blocker
-        blocker = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BLOCKER"));
-        if (!blocker.isAvailable()) {
-            blocker = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BLOCKER"));
-            if (blocker.isAvailable()) {
-                telemetry.log().add("NOTICE: Using CodeBot blocker config");
-            }
-        }
-        if (!blocker.isAvailable()) {
-            telemetry.log().add("ERROR: Unable to initalize blocker");
-        }
-        // Max is down
-        blocker.max();
-
-        // Boopers
-        booperLeft = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BOOPER-LEFT"));
-        booperRight = new ServoFTC(hardwareMap, ServoConfigs.FinalBot("BOOPER-RIGHT"));
-        if (!booperLeft.isAvailable() || !booperRight.isAvailable()) {
-            booperLeft = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BOOPER-LEFT"));
-            booperRight = new ServoFTC(hardwareMap, ServoConfigs.CodeBot("BOOPER-RIGHT"));
-            if (booperLeft.isAvailable() || booperRight.isAvailable()) {
-                telemetry.log().add("NOTICE: Using CodeBot booper config");
-            }
-        }
-        if (!booperLeft.isAvailable() || !booperRight.isAvailable()) {
-            telemetry.log().add("ERROR: Unable to initalize boopers");
-        }
+        // Servos
+        ServoConfigs servos = new ServoConfigs();
+        blocker = servos.init(hardwareMap, telemetry, "BLOCKER");
+        blocker.max(); // Max is down
+        booperLeft = servos.init(hardwareMap, telemetry, "BOOPER-LEFT");
         booperLeft.min();
+        booperRight = servos.init(hardwareMap, telemetry, "BOOPER-RIGHT");
         booperRight.min();
 
         // Vuforia
@@ -222,7 +183,6 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         vuforia.start();
 
         // Steady...
-        tank.stop();
         state = AUTO_STATE.first;
         timer = time + GYRO_TIMEOUT;
     }
@@ -285,8 +245,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 state = state.next();
                 break;
             case SHOOT:
-                // Min is up
-                blocker.min();
+                blocker.min(); // Min is up
                 param = new DriveToParams(this, SENSOR_TYPE.SHOOT_ENCODER);
                 param.greaterThan(SHOOT_SPIN);
                 drive = new DriveTo(new DriveToParams[]{param});
@@ -295,8 +254,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 state = state.next();
                 break;
             case SHOOT_WAIT:
-                // Max is down
-                blocker.max();
+                blocker.max(); // Max is down
                 if (timer < time) {
                     if (shots >= NUM_SHOTS) {
                         state = state.next();
