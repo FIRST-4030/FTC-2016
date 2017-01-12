@@ -4,7 +4,9 @@ import org.firstinspires.ftc.teamcode.wheels.MotorSide;
 import org.firstinspires.ftc.teamcode.wheels.TankMotor;
 
 public class WheelMotorConfigs {
+    public static final double CodeBotEncoderScale = 4.7 / 3;
     public static final int CodeBotEncoder = 2;
+
     public static TankMotor[] CodeBot() {
         TankMotor motors[] = new TankMotor[4];
         motors[0] = new TankMotor("fl", MotorSide.LEFT);
@@ -14,7 +16,9 @@ public class WheelMotorConfigs {
         return motors;
     }
 
+    public static final double FinalBotEncoderScale = 1.0;
     public static final int FinalBotEncoder = 0;
+
     public static TankMotor[] FinalBot() {
         TankMotor motors[] = new TankMotor[4];
         motors[0] = new TankMotor("left front", MotorSide.LEFT);
