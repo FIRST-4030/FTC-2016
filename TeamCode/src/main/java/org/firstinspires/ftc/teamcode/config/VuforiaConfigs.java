@@ -23,8 +23,8 @@ public class VuforiaConfigs {
         // We need to find the real ones for valid x/y navigation.
         float[] ROTATION_RED = {90, 0, 0};
         float[] ROTATION_BLUE = {90, 270, 0};
-        float[] ADJUST_RED = {0, 0, 0};
-        float[] ADJUST_BLUE = {0, 0, 0};
+        float[] ADJUST_RED = {0, -300, 0};
+        float[] ADJUST_BLUE = {-300, 0, 0};
 
         int X_BLUE = Field.FIELD_WIDTH / 2;
         int Y_RED = Field.FIELD_WIDTH / 2;

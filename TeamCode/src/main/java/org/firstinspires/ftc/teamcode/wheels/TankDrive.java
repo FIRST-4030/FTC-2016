@@ -14,13 +14,20 @@ public class TankDrive {
     private boolean teleop = false;
     private double speedScale = 1.0;
     private int encoderIndex = 0;
+    private double encoderScale = 1.0;
 
     public TankDrive(HardwareMap map, TankMotor[] motors, int index) {
+        this(map, motors, index, 1.0);
+    }
+
+    public TankDrive(HardwareMap map, TankMotor[] motors, int index, double scale) {
         this.teleop = false;
         this.encoderIndex = index;
+        this.encoderScale = scale;
         try {
             if (motors.length < MIN_MOTORS) {
-                throw new ArrayIndexOutOfBoundsException("TankDrive must configure at least " + MIN_MOTORS + " motors: " + motors.length);
+                throw new ArrayIndexOutOfBoundsException("TankDrive must configure at least " +
+                        MIN_MOTORS + " motors: " + motors.length);
             }
             this.motors = motors;
             for (TankMotor motor : this.motors) {
@@ -51,7 +58,7 @@ public class TankDrive {
         if (index < 0 || index >= motors.length) {
             throw new ArrayIndexOutOfBoundsException("Invalid TankMotors index: " + index);
         }
-        return motors[index].motor.getCurrentPosition();
+        return (int) ((double) motors[index].motor.getCurrentPosition() * encoderScale);
     }
 
     public int getEncoder() {
@@ -64,7 +71,7 @@ public class TankDrive {
         }
         for (TankMotor motor : motors) {
             if (motor.name.equals(name)) {
-                return motor.motor.getCurrentPosition();
+                return (int) ((double) motor.motor.getCurrentPosition() * encoderScale);
             }
         }
         throw new NoSuchElementException("Invalid TankMotors name: " + name);
