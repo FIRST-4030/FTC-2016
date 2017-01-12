@@ -30,7 +30,7 @@ public class OneSixTeleOp extends TankOpMode {
     public static final double COLLECTOR_IN = 1.0;
     public static final double SHOOTER_SPEED = 1.0;
     public static final int SHOOTER_INCR = 3700;
-`
+
     private boolean isA1Pressed = false;
     private boolean inFireRoutine = false;
     private int shooterEncoderGoal;
