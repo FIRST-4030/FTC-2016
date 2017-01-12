@@ -46,8 +46,14 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private static final int NUM_SHOTS = 2;
     private static final float SHOT_DELAY = 1.0f;
     private static final int BALL_DISTANCE = 1100;
-    private static final int BLIND_TURN = 30;
-    private static final int DESTINATION_OFFSET = 100;
+    private static final int TURN_IN_ANGLE = 15;
+    private static final int PAST_BALL_DISTANCE = 1200;
+    private static final int BLIND_TURN = -20;
+    private static final float FIND_TARGET_DELAY = 0.5f;
+    private static final int FIND_TARGET_MAX = 90;
+    private static final int FIND_TARGET_INCREMENT = FIND_TARGET_MAX / 5;
+    private static final int DESTINATION_OFFSET = (int) (18 * Field.MM_PER_INCH);
+    private static final int APPROACH_MIN = 200;
     private static final float BEACON_DELAY = 1.0f;
 
     // Numeric constants
@@ -71,6 +77,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private double timer = 0.0;
     private int target = -1;
     private Field.AllianceColor beacon = null;
+    private int findTurnAccumulator = 0;
 
     // Sensor reference types for our DriveTo callbacks
     enum SENSOR_TYPE {
@@ -84,11 +91,15 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         SHOOT,
         SHOOT_WAIT,
         DRIVE_TO_BALL,
+        TURN_IN,
+        DRIVE_PAST_BALL,
         BLIND_TURN,
         FIND_TARGET,
+        FIND_TARGET_WAIT,
         TURN_TO_DEST,
         DRIVE_TO_DEST,
         TURN_TO_TARGET,
+        APPROACH_TARGET,
         ALIGN_AT_TARGET,
         CHECK_COLOR,
         PRESS_BEACON,
@@ -135,7 +146,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         // Drive motors
         tank = new TankDrive(hardwareMap, WheelMotorConfigs.FinalBot(), WheelMotorConfigs.FinalBotEncoder);
         if (!tank.isAvailable()) {
-            tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(), WheelMotorConfigs.FinalBotEncoder);
+            tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(),
+                    WheelMotorConfigs.CodeBotEncoder, WheelMotorConfigs.CodeBotEncoderScale);
             if (tank.isAvailable()) {
                 telemetry.log().add("NOTICE: Using CodeBot wheel config");
             }
@@ -297,28 +309,52 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 driveForward(BALL_DISTANCE);
                 state = state.next();
                 break;
-            case BLIND_TURN:
-                // Bail if we have no gyro
-                if (!gyro.isReady()) {
-                    state = AUTO_STATE.last;
-                }
-                turnAngle(BLIND_TURN);
+            case TURN_IN:
+                // TODO: This needs to match our alliance color (probably user-selected)
+                turnAngle(TURN_IN_ANGLE);
                 state = state.next();
                 break;
+            case DRIVE_PAST_BALL:
+                driveForward(PAST_BALL_DISTANCE);
+                state = state.next();
+                break;
+            case BLIND_TURN:
+                if (!gyro.isReady()) {
+                    // Bail if we have no gyro
+                    state = AUTO_STATE.last;
+                } else {
+                    // TODO: This needs to match our alliance color (probably user-selected)
+                    // Turn away first; we might see the alternate alliance target
+                    turnAngle(BLIND_TURN);
+                    state = AUTO_STATE.FIND_TARGET_WAIT;
+                }
+                break;
             case FIND_TARGET:
-                // TODO: Spin or something
-
-                // Select a target when we have a vision fix
+                if (findTurnAccumulator < FIND_TARGET_MAX) {
+                    turnAngle(FIND_TARGET_INCREMENT);
+                    findTurnAccumulator += FIND_TARGET_INCREMENT;
+                    timer = time + FIND_TARGET_DELAY;
+                    state = state.next();
+                } else {
+                    state = AUTO_STATE.last;
+                }
+                break;
+            case FIND_TARGET_WAIT:
                 if (!vuforia.isStale()) {
+                    // Select a target when we have a vision fix
                     // TODO: This needs to match our alliance color (probably user-selected)
                     target = closestTarget(Field.AllianceColor.BLUE);
                     state = state.next();
+                } else if (timer < time) {
+                    // Turn more if we still can't see a target
+                    state = state.prev();
                 }
-                break;
             case TURN_TO_DEST:
-                if (gyro.isReady() && target >= 0) {
-                    turnBearing(vuforia.bearing(destinationXY(target)));
+                if (target < 0) {
+                    // Bail if we have no target
+                    state = AUTO_STATE.last;
                 }
+                turnBearing(vuforia.bearing(destinationXY(target)));
                 state = state.next();
                 break;
             case DRIVE_TO_DEST:
@@ -328,13 +364,21 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 state = state.next();
                 break;
             case TURN_TO_TARGET:
-                if (gyro.isReady() && target >= 0) {
-                    turnBearing(vuforia.bearing(target));
-                }
+                turnBearing(vuforia.bearing(target));
                 state = state.next();
                 break;
+            case APPROACH_TARGET:
+                // TODO: Does this work?
+                int distance = vuforia.distance(target);
+                if (distance < APPROACH_MIN) {
+                    state = state.next();
+                } else {
+                    driveForward(distance / 2);
+                    state = state.prev();
+                }
+                break;
             case ALIGN_AT_TARGET:
-                // TODO: Some sort of turn and approach operation
+                // TODO: Align based on target plane angle
                 if (vuforia.getVisible(config[target].name)) {
                     state = state.next();
                 }
@@ -488,7 +532,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private int[] destinationXY(int index) {
         int[] destination = new int[]{config[index].adjusted[0], config[index].adjusted[1]};
         // TODO: This is imaginary and must be calibrated before use
-        if (config[index].color.equals(Field.AllianceColor.RED)) {
+        // Pick a spot in front of the destination target to allow better alignment
+        if (config[index].color.equals(Field.AllianceColor.BLUE)) {
             destination[0] -= DESTINATION_OFFSET;
         } else {
             destination[1] -= DESTINATION_OFFSET;
