@@ -17,6 +17,7 @@ public class OneSixTeleOp extends TankOpMode {
     Servo leftBooper;
     Servo rightBooper;
     Servo blocker;
+    Servo flapper;
 
     public static final double BOOPER_IN = 0.0;
     public static final double MAX_BOOPER_OUT = 0.35;
@@ -24,10 +25,12 @@ public class OneSixTeleOp extends TankOpMode {
     public static final double BOOPER_INCR = 0.005;
     public static final double BLOCKER_UP = 0.0;
     public static final double BLOCKER_DOWN = 0.98;
+    public static final double FLAPPER_UP = 0.70;
+    public static final double FLAPPER_DOWN = 0.0;
     public static final double COLLECTOR_IN = 1.0;
     public static final double SHOOTER_SPEED = 1.0;
     public static final int SHOOTER_INCR = 3700;
-
+`
     private boolean isA1Pressed = false;
     private boolean isA2Pressed = false;
     private boolean isBackPressed = false;
@@ -50,6 +53,7 @@ public class OneSixTeleOp extends TankOpMode {
         leftBooper = hardwareMap.servo.get("left-booper");
         rightBooper = hardwareMap.servo.get("right-booper");
         blocker = hardwareMap.servo.get("blocker");
+        flapper = hardwareMap.servo.get("flapper");
         rightBooper.setDirection(Servo.Direction.REVERSE);
 
         setLeftBooperPosition(0);
@@ -103,27 +107,23 @@ public class OneSixTeleOp extends TankOpMode {
             setRightBooperPosition(BOOPER_IN);
         }
 
-        if(gamepad1.left_trigger > 0.5) {
+        if(gamepad1.dpad_up) {
             if(leftBooperPosition + BOOPER_INCR <= MAX_BOOPER_OUT) {
                 setLeftBooperPosition(leftBooperPosition + BOOPER_INCR);
             } else {
                 setLeftBooperPosition(MAX_BOOPER_OUT);
             }
-        } else if(gamepad1.left_bumper) {
-            if(leftBooperPosition - BOOPER_INCR >= BOOPER_IN) {
-                setLeftBooperPosition(leftBooperPosition - BOOPER_INCR);
-            } else {
-                setLeftBooperPosition(BOOPER_IN);
-            }
-        }
-
-        if(gamepad1.right_trigger > 0.5) {
             if(rightBooperPosition + BOOPER_INCR <= MAX_BOOPER_OUT) {
                 setRightBooperPosition(rightBooperPosition + BOOPER_INCR);
             } else {
                 setRightBooperPosition(MAX_BOOPER_OUT);
             }
-        } else if(gamepad1.right_bumper) {
+        } else if(gamepad1.dpad_down) {
+            if(leftBooperPosition - BOOPER_INCR >= BOOPER_IN) {
+                setLeftBooperPosition(leftBooperPosition - BOOPER_INCR);
+            } else {
+                setLeftBooperPosition(BOOPER_IN);
+            }
             if(rightBooperPosition - BOOPER_INCR >= BOOPER_IN) {
                 setRightBooperPosition(rightBooperPosition - BOOPER_INCR);
             } else {
@@ -135,12 +135,19 @@ public class OneSixTeleOp extends TankOpMode {
             setLeftBooperPosition(BOOPER_CALIBRATE);
             setRightBooperPosition(BOOPER_CALIBRATE);
         }
+
+        //Hold for flapper down, up by default
+        if(gamepad1.right_bumper) {
+            flapper.setPosition(FLAPPER_DOWN);
+        } else {
+            flapper.setPosition(FLAPPER_UP);
+        }
     }
 
     public float moderateMotorPower(float motorPower) {
         float power = super.moderateMotorPower(motorPower);
 
-        if(gamepad1.y) {
+        if(gamepad1.left_bumper) {
             power /= 2;
         }
 
@@ -161,6 +168,7 @@ public class OneSixTeleOp extends TankOpMode {
         telemetry.addData("Left Booper", leftBooper.getPosition());
         telemetry.addData("Right Booper", rightBooper.getPosition());
         telemetry.addData("Blocker", blocker.getPosition());
+        telemetry.addData("Flapper", flapper.getPosition());
         telemetry.addData("Shooter Motor", shooterMotor.getCurrentPosition());
         telemetry.addData("Left Wheel", frontLeftMotor.getCurrentPosition());
         telemetry.addData("Right Wheel", frontRightMotor.getCurrentPosition());
