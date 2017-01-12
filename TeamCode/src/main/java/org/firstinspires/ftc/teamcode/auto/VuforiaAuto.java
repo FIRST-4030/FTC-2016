@@ -60,6 +60,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private final static int FULL_CIRCLE = 360;
 
     // Devices and subsystems
+    private final Field.AllianceColor color;
     private VuforiaTarget[] config;
     private VuforiaFTC vuforia;
     private TankDrive tank;
@@ -128,6 +129,10 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
 
         public static final AUTO_STATE first = INIT;
         public static final AUTO_STATE last = DONE;
+    }
+
+    public VuforiaAuto(Field.AllianceColor color) {
+        this.color = color;
     }
 
     @Override
@@ -230,6 +235,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Main state machine
+        int angle;
         DriveToParams param;
         switch (state) {
             case INIT:
@@ -268,8 +274,11 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 state = state.next();
                 break;
             case TURN_IN:
-                // TODO: This needs to match our alliance color (probably user-selected)
-                turnAngle(TURN_IN_ANGLE);
+                angle = TURN_IN_ANGLE;
+                if (Field.AllianceColor.RED.equals(color)) {
+                    angle *= -1;
+                }
+                turnAngle(angle);
                 state = state.next();
                 break;
             case DRIVE_PAST_BALL:
@@ -281,9 +290,12 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                     // Bail if we have no gyro
                     state = AUTO_STATE.last;
                 } else {
-                    // TODO: This needs to match our alliance color (probably user-selected)
                     // Turn away first; we might see the alternate alliance target
-                    turnAngle(BLIND_TURN);
+                    angle = BLIND_TURN;
+                    if (Field.AllianceColor.RED.equals(color)) {
+                        angle *= -1;
+                    }
+                    turnAngle(angle);
                     state = AUTO_STATE.FIND_TARGET_WAIT;
                 }
                 break;
@@ -300,8 +312,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             case FIND_TARGET_WAIT:
                 if (!vuforia.isStale()) {
                     // Select a target when we have a vision fix
-                    // TODO: This needs to match our alliance color (probably user-selected)
-                    target = closestTarget(Field.AllianceColor.BLUE);
+                    target = closestTarget(color);
                     state = state.next();
                 } else if (timer < time) {
                     // Turn more if we still can't see a target
@@ -348,7 +359,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                 break;
             case PRESS_BEACON:
                 // TODO: This depends on where the color sensor is mounted
-                if (beacon.equals(Field.AllianceColor.RED)) {
+                if (Field.AllianceColor.RED.equals(beacon)) {
                     booperLeft.max();
                 } else {
                     booperRight.max();
