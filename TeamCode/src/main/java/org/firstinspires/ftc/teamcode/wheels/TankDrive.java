@@ -4,8 +4,6 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import java.util.NoSuchElementException;
-
 public class TankDrive {
     private static final int MIN_MOTORS = 2;
 
@@ -47,8 +45,8 @@ public class TankDrive {
         return motors != null;
     }
 
-    public void setEncoderIndex(int index) {
-        this.encoderIndex = index;
+    public int getEncoder() {
+        return getEncoder(encoderIndex);
     }
 
     public int getEncoder(int index) {
@@ -61,21 +59,19 @@ public class TankDrive {
         return (int) ((double) motors[index].motor.getCurrentPosition() * encoderScale);
     }
 
-    public int getEncoder() {
-        return getEncoder(encoderIndex);
-    }
-
-    public int getEncoder(String name) {
-        if (!isAvailable()) {
-            return 0;
-        }
-        for (TankMotor motor : motors) {
-            if (motor.name.equals(name)) {
-                return (int) ((double) motor.motor.getCurrentPosition() * encoderScale);
-            }
-        }
-        throw new NoSuchElementException("Invalid TankMotors name: " + name);
-    }
+    // --Commented out by Inspection START (2017-01-13, 11:20 AM):
+    //    public int getEncoder(String name) {
+    //        if (!isAvailable()) {
+    //            return 0;
+    //        }
+    //        for (TankMotor motor : motors) {
+    //            if (motor.name.equals(name)) {
+    //                return (int) ((double) motor.motor.getCurrentPosition() * encoderScale);
+    //            }
+    //        }
+    //        throw new NoSuchElementException("Invalid TankMotors name: " + name);
+    //    }
+    // --Commented out by Inspection STOP (2017-01-13, 11:20 AM)
 
     public void setSpeed(double speed) {
         if (isDisabled()) {
@@ -84,19 +80,6 @@ public class TankDrive {
         for (TankMotor motor : motors) {
             motor.motor.setPower(speed * speedScale);
         }
-    }
-
-    public void setSpeed(double speed, String name) {
-        if (isDisabled()) {
-            return;
-        }
-        for (TankMotor motor : motors) {
-            if (motor.name.equals(name)) {
-                motor.motor.setPower(speed * speedScale);
-                return;
-            }
-        }
-        throw new NoSuchElementException("Invalid TankMotors name: " + name);
     }
 
     public void setSpeed(double speed, MotorSide side) {
@@ -110,6 +93,21 @@ public class TankDrive {
         }
     }
 
+    // --Commented out by Inspection START (2017-01-13, 11:20 AM):
+    //    public void setSpeed(double speed, String name) {
+    //        if (isDisabled()) {
+    //            return;
+    //        }
+    //        for (TankMotor motor : motors) {
+    //            if (motor.name.equals(name)) {
+    //                motor.motor.setPower(speed * speedScale);
+    //                return;
+    //            }
+    //        }
+    //        throw new NoSuchElementException("Invalid TankMotors name: " + name);
+    //    }
+    // --Commented out by Inspection STOP (2017-01-13, 11:20 AM)
+
     public void stop() {
         if (!isAvailable()) {
             return;
@@ -119,10 +117,19 @@ public class TankDrive {
         }
     }
 
+    public int numMotors() {
+        if (!isAvailable()) {
+            return 0;
+        }
+        return motors.length;
+    }
+
+    @SuppressWarnings("WeakerAccess")
     public boolean isDisabled() {
         return !isAvailable() || this.disabled;
     }
 
+    @SuppressWarnings("unused")
     public void setDisabled(boolean disabled) {
         if (!this.disabled && disabled) {
             stop();
@@ -130,6 +137,7 @@ public class TankDrive {
         this.disabled = disabled;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public boolean isTeleop() {
         return this.teleop;
     }
@@ -141,6 +149,7 @@ public class TankDrive {
         this.teleop = enabled;
     }
 
+    @SuppressWarnings("unused")
     public void setSpeedScale(double scale) {
         this.speedScale = scale;
     }

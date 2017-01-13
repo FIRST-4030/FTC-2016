@@ -18,13 +18,14 @@ class CodeBotTeleop extends OpMode {
 
     @Override
     public void init() {
-        telemetry.clearAll();
-
-        // Sensors
+        // Rangefinder
         range = new Range(hardwareMap, "range");
         if (!range.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize rangefinder");
         }
+        range.setLED(true);
+
+        // Gyro
         gyro = new Gyro(hardwareMap, "gyro");
         if (!gyro.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize gyroscope");
@@ -32,6 +33,7 @@ class CodeBotTeleop extends OpMode {
 
         // Drive motors
         tank = new WheelMotorConfigs().init(hardwareMap, telemetry);
+        tank.stop();
 
         telemetry.update();
     }
@@ -39,22 +41,32 @@ class CodeBotTeleop extends OpMode {
     @Override
     public void start() {
         // Allow driver control
-        tank.stop();
         tank.setTeleop(true);
     }
 
     @Override
     public void loop() {
 
+        // Tank drive
         tank.loop(gamepad1);
-        telemetry.addData("Encoder 0/1/2/3", tank.getEncoder(0) + "/" + tank.getEncoder(1) + "/" +
-                tank.getEncoder(2) + "/" + tank.getEncoder(3));
 
+        // Encoders
+        String encoders = "";
+        for (int i = 0; i < tank.numMotors(); i++) {
+            if (!encoders.isEmpty()) {
+                encoders += "/";
+            }
+            encoders += tank.getEncoder(i);
+        }
+        telemetry.addData("Encoders", encoders);
+
+        // Rangefinder
         range.setLED(true);
         telemetry.addData("Range", range.getRange());
         telemetry.addData("Range Optical", "%d", range.getRangeOptical());
         telemetry.addData("Range Ultrasound", "%d", range.getRangeUltrasound());
 
+        // Gyro
         if (gamepad1.a || gamepad2.a) {
             gyro.reset();
         }
@@ -64,6 +76,7 @@ class CodeBotTeleop extends OpMode {
             telemetry.addData("Heading", "%03d (Press A to reset)", gyro.getHeading());
         }
 
+        // Loop invariants
         telemetry.update();
     }
 }
