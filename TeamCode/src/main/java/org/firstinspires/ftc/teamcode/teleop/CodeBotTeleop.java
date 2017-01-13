@@ -1,20 +1,16 @@
-package org.firstinspires.ftc.teamcode.test;
+package org.firstinspires.ftc.teamcode.teleop;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
 import org.firstinspires.ftc.teamcode.sensors.Gyro;
 import org.firstinspires.ftc.teamcode.sensors.Range;
-import org.firstinspires.ftc.teamcode.wheels.MotorSide;
 import org.firstinspires.ftc.teamcode.wheels.TankDrive;
-import org.firstinspires.ftc.teamcode.wheels.TankMotor;
 
-@Disabled
 @SuppressWarnings("unused")
-@TeleOp(name = "Range Test", group = "Test")
-class RangeTest extends OpMode {
+@TeleOp(name = "CodeBot Teleop", group = "TeleopTest")
+class CodeBotTeleop extends OpMode {
 
     private Range range;
     private Gyro gyro;
@@ -35,10 +31,7 @@ class RangeTest extends OpMode {
         }
 
         // Drive motors
-        tank = new TankDrive(hardwareMap, WheelMotorConfigs.CodeBot(), WheelMotorConfigs.CodeBotEncoder);
-        if (!tank.isAvailable()) {
-            telemetry.log().add("ERROR: Unable to initalize motors");
-        }
+        tank = new WheelMotorConfigs().init(hardwareMap, telemetry);
 
         telemetry.update();
     }

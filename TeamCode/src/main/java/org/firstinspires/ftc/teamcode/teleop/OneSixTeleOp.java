@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.ariel.TankOpMode;
  * Created by robotics on 11/5/2016.
  */
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Tele-Op", group = "Iterative Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Tele-Op", group = "Teleop")
 public class OneSixTeleOp extends TankOpMode {
 
     DcMotor collectorMotor;
