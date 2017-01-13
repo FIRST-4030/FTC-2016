@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.auto;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.field.Field;
@@ -21,8 +22,8 @@ import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
 
 import java.util.NoSuchElementException;
 
-@SuppressWarnings("unused")
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Vuforia Auto", group = "Test")
+@Disabled
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Vuforia Auto", group = "AutoTest")
 public class VuforiaAuto extends OpMode implements DriveToListener {
 
     // Driving constants
@@ -109,7 +110,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         DONE;
 
         // Private static copy to avoid repeated calls to values()
-        private static AUTO_STATE[] values = values();
+        private static final AUTO_STATE[] values = values();
 
         public AUTO_STATE prev() {
             int i = ordinal() - 1;

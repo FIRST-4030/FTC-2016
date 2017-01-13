@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 /**
  * Created by User on 11/18/2016.
  */
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", group = "AutoMode")
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", group = "Auto")
 public class DriveForwardAuto extends LinearOpMode {
 
     private static final int SCORE_INCR = -1850;
