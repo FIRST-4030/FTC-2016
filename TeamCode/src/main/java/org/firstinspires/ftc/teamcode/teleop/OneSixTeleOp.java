@@ -5,31 +5,27 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.ariel.TankOpMode;
 
-/**
- * Created by robotics on 11/5/2016.
- */
-
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Tele-Op", group = "Teleop")
-public class OneSixTeleOp extends TankOpMode {
+class OneSixTeleOp extends TankOpMode {
 
-    DcMotor collectorMotor;
-    DcMotor shooterMotor;
-    Servo leftBooper;
-    Servo rightBooper;
-    Servo blocker;
-    Servo flapper;
+    private DcMotor collectorMotor;
+    private DcMotor shooterMotor;
+    private Servo leftBooper;
+    private Servo rightBooper;
+    private Servo blocker;
+    private Servo flapper;
 
-    public static final double BOOPER_IN = 0.0;
-    public static final double MAX_BOOPER_OUT = 0.35;
-    public static final double BOOPER_CALIBRATE = 0.43;
-    public static final double BOOPER_INCR = 0.005;
-    public static final double BLOCKER_UP = 0.0;
-    public static final double BLOCKER_DOWN = 0.98;
-    public static final double FLAPPER_UP = 0.70;
-    public static final double FLAPPER_DOWN = 0.0;
-    public static final double COLLECTOR_IN = 1.0;
-    public static final double SHOOTER_SPEED = 1.0;
-    public static final int SHOOTER_INCR = 3700;
+    private static final double BOOPER_IN = 0.0;
+    private static final double MAX_BOOPER_OUT = 0.35;
+    private static final double BOOPER_CALIBRATE = 0.43;
+    private static final double BOOPER_INCR = 0.005;
+    private static final double BLOCKER_UP = 0.0;
+    private static final double BLOCKER_DOWN = 0.98;
+    private static final double FLAPPER_UP = 0.70;
+    private static final double FLAPPER_DOWN = 0.0;
+    private static final double COLLECTOR_IN = 1.0;
+    private static final double SHOOTER_SPEED = 1.0;
+    private static final int SHOOTER_INCR = 3700;
 
     private boolean isA1Pressed = false;
     private boolean inFireRoutine = false;
@@ -37,6 +33,7 @@ public class OneSixTeleOp extends TankOpMode {
     private double leftBooperPosition;
     private double rightBooperPosition;
 
+    @SuppressWarnings("unused")
     public OneSixTeleOp() {
         super("left-wheel-motor", "right-wheel-motor");
     }
@@ -55,9 +52,6 @@ public class OneSixTeleOp extends TankOpMode {
         setLeftBooperPosition(0);
         setRightBooperPosition(0);
         blocker.setPosition(BLOCKER_DOWN);
-        double blockerPosition = 1.0;
-
-        boolean isCollectorOn = false;
     }
 
     public void loop() {
@@ -68,10 +62,8 @@ public class OneSixTeleOp extends TankOpMode {
         //Emergency out and collector off
         if(gamepad2.back) {
             collectorMotor.setPower(-COLLECTOR_IN);
-            boolean isBackPressed = true;
         } else if(gamepad2.a) {
             collectorMotor.setPower(0.0);
-            boolean isA2Pressed = true;
         } else {
             collectorMotor.setPower(COLLECTOR_IN);
         }
@@ -150,12 +142,12 @@ public class OneSixTeleOp extends TankOpMode {
         return power;
     }
 
-    public void setLeftBooperPosition(double position) {
+    private void setLeftBooperPosition(double position) {
         leftBooper.setPosition(position);
         leftBooperPosition = position;
     }
 
-    public void setRightBooperPosition(double position) {
+    private void setRightBooperPosition(double position) {
         rightBooper.setPosition(position);
         rightBooperPosition = position;
     }
