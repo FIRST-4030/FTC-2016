@@ -37,7 +37,7 @@ class CodeBotTeleop extends OpMode {
         }
 
         // Color
-        color = new Color(hardwareMap, "color", I2cAddr.create8bit(0x1c));
+        color = new Color(hardwareMap, "color-1c", I2cAddr.create8bit(0x1c));
         if (!color.isAvailable()) {
             telemetry.log().add("Unable to init color sensor");
         }
