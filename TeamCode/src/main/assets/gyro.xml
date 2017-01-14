@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<Robot type="FirstInspires-FTC">
+    <DeviceInterfaceModule name="Device Interface Module 5" serialNumber="AL00VCR5">
+        <ModernRoboticsI2cRangeSensor name="range" port="0" />
+        <Gyro name="gyro" port="1" />
+        <ColorSensor name="color-1c" port="4" />
+    </DeviceInterfaceModule>
+    <MotorController name="Motor Controller 3" serialNumber="AL00VY1Z">
+        <Motor name="br" port="1" />
+        <Motor name="bl" port="2" />
+    </MotorController>
+    <MotorController name="Motor Controller 6" serialNumber="AL00VH01">
+        <Motor name="fr" port="1" />
+        <Motor name="fl" port="2" />
+    </MotorController>
+</Robot>
