@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 /**
  * Created by User on 11/18/2016.
  */
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", group = "Auto")
-public class DriveForwardAuto extends LinearOpMode {
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous w/ Wait", group = "Auto")
+public class DriveForwardWaitAuto extends LinearOpMode {
 
     private static final int SCORE_INCR = -1900;
     private static final int BALL_INCR = -1100;
@@ -18,6 +18,7 @@ public class DriveForwardAuto extends LinearOpMode {
     public static final double BLOCKER_DOWN = 0.98;
     private static final double FLAPPER_UP = 0.70;
     public static final int NUM_SHOTS = 2;
+    public static final int WAIT_MILLIS = 5000;
 
     /**
      * Override this method and place your code here.
@@ -45,6 +46,12 @@ public class DriveForwardAuto extends LinearOpMode {
         flapper.setPosition(FLAPPER_UP);
 
         waitForStart();
+
+        // Wait for another team to do whatever
+        long wait = System.currentTimeMillis() + WAIT_MILLIS;
+        while (wait > System.currentTimeMillis()) {
+            idle();
+        }
 
         int trueGoal = leftMotor.getCurrentPosition() + SCORE_INCR;
         while (leftMotor.getCurrentPosition() > trueGoal) {

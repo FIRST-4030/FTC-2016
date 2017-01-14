@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -14,7 +13,7 @@ import org.firstinspires.ftc.teamcode.wheels.TankDrive;
 
 @SuppressWarnings("unused")
 @TeleOp(name = "CodeBot Teleop", group = "TeleopTest")
-class CodeBotTeleop extends OpMode {
+public class CodeBotTeleop extends OpMode {
 
     private Range range;
     private Gyro gyro;

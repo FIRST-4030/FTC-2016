@@ -5,8 +5,9 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.ariel.TankOpMode;
 
+@SuppressWarnings("unused")
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Tele-Op", group = "Teleop")
-class OneSixTeleOp extends TankOpMode {
+public class OneSixTeleOp extends TankOpMode {
 
     private DcMotor collectorMotor;
     private DcMotor shooterMotor;
