@@ -1,7 +1,9 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 
 import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
 import org.firstinspires.ftc.teamcode.sensors.Gyro;
@@ -14,6 +16,7 @@ class CodeBotTeleop extends OpMode {
 
     private Range range;
     private Gyro gyro;
+    private ColorSensor color;
     private TankDrive tank;
 
     @Override
@@ -30,6 +33,8 @@ class CodeBotTeleop extends OpMode {
         if (!gyro.isAvailable()) {
             telemetry.log().add("ERROR: Unable to initalize gyroscope");
         }
+
+        color = hardwareMap.colorSensor.get("color");
 
         // Drive motors
         tank = new WheelMotorConfigs().init(hardwareMap, telemetry);
@@ -65,6 +70,11 @@ class CodeBotTeleop extends OpMode {
         telemetry.addData("Range", range.getRange());
         telemetry.addData("Range Optical", "%d", range.getRangeOptical());
         telemetry.addData("Range Ultrasound", "%d", range.getRangeUltrasound());
+
+        //Color Sensor
+        color.enableLed(false);
+        telemetry.addData("RBG", "%d %d %d", color.red(), color.blue(), color.green());
+        telemetry.addData("Alpha", color.alpha());
 
         // Gyro
         if (gamepad1.a || gamepad2.a) {
