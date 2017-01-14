@@ -47,14 +47,17 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private static final int NUM_SHOTS = 2;
     private static final float SHOT_DELAY = 1.0f;
     private static final int BALL_DISTANCE = 1100;
-    private static final int TURN_IN_ANGLE = 15;
-    private static final int PAST_BALL_DISTANCE = 1200;
-    private static final int BLIND_TURN = -20;
-    private static final float FIND_TARGET_DELAY = 0.5f;
-    private static final int FIND_TARGET_MAX = 90;
+    private static final int TURN_IN_ANGLE = 5;
+    private static final int PAST_BALL_DISTANCE = 1000;
+    private static final int BLIND_TURN = -40;
+    private static final float FIND_TARGET_DELAY = 0.75f;
+    private static final int FIND_TARGET_MAX = -BLIND_TURN + 60;
     private static final int FIND_TARGET_INCREMENT = FIND_TARGET_MAX / 5;
-    private static final int DESTINATION_OFFSET = (int) (18 * Field.MM_PER_INCH);
-    private static final int APPROACH_MIN = 200;
+    private static final String FIRST_TARGET_BLUE = "LEGO";
+    private static final String FIRST_TARGET_RED = "Tools";
+    private static final int BLIND_BUMP = 1000;
+    private static final int DESTINATION_OFFSET = (int) (12 * Field.MM_PER_INCH);
+    private static final int APPROACH_MIN = 400;
     private static final float BEACON_DELAY = 1.0f;
 
     // Numeric constants
@@ -80,6 +83,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
     private int target = -1;
     private Field.AllianceColor beacon = null;
     private int findTurnAccumulator = 0;
+    private boolean waiting = false;
+    private double autodriveComplete = 0.0;
 
     // Sensor reference types for our DriveTo callbacks
     enum SENSOR_TYPE {
@@ -101,8 +106,12 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         TURN_TO_DEST,
         DRIVE_TO_DEST,
         TURN_TO_TARGET,
-        APPROACH_TARGET,
+        WAIT_TARGET,
+        TARGET_NOT_VISIBLE,
         ALIGN_AT_TARGET,
+        APPROACH_TARGET,
+        ALIGN_TARGET_PLANE,
+        BUMP_WALL,
         CHECK_COLOR,
         PRESS_BEACON,
         BEACON_WAIT,
@@ -204,6 +213,7 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
             if (drive.isDone()) {
                 drive = null;
                 tank.setTeleop(true);
+                autodriveComplete = time;
             }
         }
 
@@ -236,7 +246,8 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         }
 
         // Main state machine
-        int angle;
+        int angle = 0;
+        int bearing;
         DriveToParams param;
         switch (state) {
             case INIT:
@@ -291,67 +302,156 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
                     // Bail if we have no gyro
                     state = AUTO_STATE.last;
                 } else {
-                    // Turn away first; we might see the alternate alliance target
+                    // Turn away first; we might see the nearby alternate alliance target
                     angle = BLIND_TURN;
                     if (Field.AllianceColor.RED.equals(color)) {
                         angle *= -1;
                     }
                     turnAngle(angle);
+                    waiting = false;
                     state = AUTO_STATE.FIND_TARGET_WAIT;
                 }
+                // Reset the accumulator for use in FIND_TARGET
+                findTurnAccumulator = 0;
                 break;
             case FIND_TARGET:
                 if (findTurnAccumulator < FIND_TARGET_MAX) {
                     turnAngle(FIND_TARGET_INCREMENT);
                     findTurnAccumulator += FIND_TARGET_INCREMENT;
-                    timer = time + FIND_TARGET_DELAY;
+                    // Reset the waiting flag for FIND_TARGET_WAIT
+                    waiting = false;
                     state = state.next();
                 } else {
                     state = AUTO_STATE.last;
                 }
                 break;
             case FIND_TARGET_WAIT:
+                if (!waiting) {
+                    timer = autodriveComplete + FIND_TARGET_DELAY;
+                    waiting = true;
+                }
                 if (!vuforia.isStale()) {
                     // Select a target when we have a vision fix
-                    target = closestTarget(color);
+                    target = firstTarget(color);
+                    telemetry.log().add("Selected target " + config[target].name);
+
+                    // Sync the gyro before turning
+                    gyro.setHeading(vuforia.getHeading());
                     state = state.next();
                 } else if (timer < time) {
                     // Turn more if we still can't see a target
                     state = state.prev();
                 }
+                break;
             case TURN_TO_DEST:
                 if (target < 0) {
                     // Bail if we have no target
+                    telemetry.log().add("No target found. Aborting...");
                     state = AUTO_STATE.last;
+                    break;
                 }
-                turnBearing(vuforia.bearing(destinationXY(target)));
+                bearing = vuforia.bearing(destinationXY(target));
+                turnBearing(bearing);
+                telemetry.log().add("Turning to " + config[target].name + "-dest @ " + bearing + "°");
                 state = state.next();
                 break;
             case DRIVE_TO_DEST:
                 if (target >= 0) {
-                    driveForward(vuforia.distance(destinationXY(target)));
+                    int distance = vuforia.distance(destinationXY(target));
+                    driveForward(distance);
+                    telemetry.log().add("Driving to " + config[target].name + "-dest @ " + distance + "mm");
                 }
                 state = state.next();
                 break;
             case TURN_TO_TARGET:
-                turnBearing(vuforia.bearing(target));
+                if (Field.AllianceColor.BLUE.equals(color)) {
+                    bearing = 90;
+                } else {
+                    bearing = 0;
+                }
+                turnBearing(bearing);
+                telemetry.log().add("Turning to " + config[target].name + " wall @ " + bearing + "°");
+                // Reset the waiting flag for WAIT_TARGET
+                waiting = false;
+                // Reset the accumulator for use in TARGET_NOT_VISIBLE
+                findTurnAccumulator = 0;
                 state = state.next();
                 break;
+            case WAIT_TARGET:
+                if (!waiting) {
+                    timer = autodriveComplete + FIND_TARGET_DELAY;
+                    waiting = true;
+                }
+                if (!vuforia.isStale()) {
+                    gyro.setHeading(vuforia.getHeading());
+                    state = state.ALIGN_AT_TARGET;
+                } else if (timer < time) {
+                    telemetry.log().add("Target yet not visible for approach. Searching...");
+                    state = state.next();
+                }
+                break;
+            case TARGET_NOT_VISIBLE:
+                // Turn cw by on attempt 1, ccw on attempt 2, then give up
+                if (findTurnAccumulator == 0) {
+                    telemetry.log().add("Searching CW for target");
+                    angle = FIND_TARGET_INCREMENT;
+                } else if (findTurnAccumulator * FIND_TARGET_INCREMENT > 0) {
+                    telemetry.log().add("Searching CCW for target");
+                    angle = FIND_TARGET_INCREMENT * -2;
+                } else {
+                    telemetry.log().add("Unable to reacquire target. Aborting...");
+                    state = AUTO_STATE.last;
+                    break;
+                }
+                findTurnAccumulator = angle;
+                turnAngle(angle);
+                // Reset the waiting flag for WAIT_TARGET
+                waiting = false;
+                state = state.prev();
+                break;
+            case ALIGN_AT_TARGET:
+                if (vuforia.isStale()) {
+                    telemetry.log().add("Unable to align at target. Aborting...");
+                    state = AUTO_STATE.last;
+                    break;
+                } else {
+                    bearing = vuforia.bearing(target);
+                    turnBearing(bearing);
+                    telemetry.log().add("Turning to " + config[target].name + " @ " + bearing + "°");
+                    state = state.next();
+                }
+                break;
             case APPROACH_TARGET:
-                // TODO: Does this work?
+                if (vuforia.isStale()) {
+                    telemetry.log().add("Unable to locate target for approach. Attempting blind bump.");
+                    driveForward(BLIND_BUMP);
+                    state = AUTO_STATE.CHECK_COLOR;
+                    break;
+                }
                 int distance = vuforia.distance(target);
                 if (distance < APPROACH_MIN) {
                     state = state.next();
                 } else {
+                    telemetry.log().add("Driving toward " + config[target].name + " @ " + distance + "mm");
+                    // Drive half the distance to allow multiple alignments
                     driveForward(distance / 2);
                     state = state.prev();
                 }
                 break;
-            case ALIGN_AT_TARGET:
-                // TODO: Align based on target plane angle
+            case ALIGN_TARGET_PLANE:
                 if (vuforia.getVisible(config[target].name)) {
+                    turnAngle(vuforia.getTargetAngle(config[target].name));
                     state = state.next();
+                } else {
+                    telemetry.log().add("Unable to align to target plane");
+                    state = AUTO_STATE.last;
                 }
+                // TODO: Stop for debug
+                state = AUTO_STATE.last;
+                break;
+            case BUMP_WALL:
+                driveForward(APPROACH_MIN / 2);
+                state = state.next();
                 break;
             case CHECK_COLOR:
                 // TODO: Check the color sensor for beacon configuration
@@ -482,6 +582,20 @@ public class VuforiaAuto extends OpMode implements DriveToListener {
         int ticks = (int) ((float) -distance * ENCODER_PER_MM);
         param.lessThan(ticks + tank.getEncoder(ENCODER_INDEX) - OVERRUN_ENCODER);
         drive = new DriveTo(new DriveToParams[]{param});
+    }
+
+    private int firstTarget(Field.AllianceColor color) {
+        int index = -1;
+        for (int i = 0; i < config.length; i++) {
+            if (config[i].color.equals(color)) {
+                // TODO: An ENUM-based array would be better, but not tonight
+                if (config[i].name.equals(FIRST_TARGET_BLUE) || config[i].name.equals(FIRST_TARGET_RED)) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+        return index;
     }
 
     private int closestTarget(Field.AllianceColor color) {
