@@ -4,8 +4,10 @@ import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.I2cAddr;
 
 import org.firstinspires.ftc.teamcode.config.WheelMotorConfigs;
+import org.firstinspires.ftc.teamcode.sensors.Color;
 import org.firstinspires.ftc.teamcode.sensors.Gyro;
 import org.firstinspires.ftc.teamcode.sensors.Range;
 import org.firstinspires.ftc.teamcode.wheels.TankDrive;
@@ -16,7 +18,7 @@ class CodeBotTeleop extends OpMode {
 
     private Range range;
     private Gyro gyro;
-    private ColorSensor color;
+    private Color color;
     private TankDrive tank;
 
     @Override
@@ -34,7 +36,11 @@ class CodeBotTeleop extends OpMode {
             telemetry.log().add("ERROR: Unable to initalize gyroscope");
         }
 
-        color = hardwareMap.colorSensor.get("color");
+        // Color
+        color = new Color(hardwareMap, "color", I2cAddr.create8bit(0x1c));
+        if (!color.isAvailable()) {
+            telemetry.log().add("Unable to init color sensor");
+        }
 
         // Drive motors
         tank = new WheelMotorConfigs().init(hardwareMap, telemetry);
@@ -71,8 +77,8 @@ class CodeBotTeleop extends OpMode {
         telemetry.addData("Range Optical", "%d", range.getRangeOptical());
         telemetry.addData("Range Ultrasound", "%d", range.getRangeUltrasound());
 
-        //Color Sensor
-        color.enableLed(false);
+        // Color Sensor
+        color.setLED(false);
         telemetry.addData("RBG", "%d %d %d", color.red(), color.blue(), color.green());
         telemetry.addData("Alpha", color.alpha());
 
