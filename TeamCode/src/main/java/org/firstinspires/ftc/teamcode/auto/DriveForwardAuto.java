@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", group = "Auto")
 public class DriveForwardAuto extends LinearOpMode {
 
-    private static final int SCORE_INCR = -1850;
+    private static final int SCORE_INCR = -1900;
     private static final int BALL_INCR = -1100;
     public static final int SHOOTER_INCR = 3700;
     public static final double SHOOTER_SPEED = 1.0;
@@ -44,7 +44,7 @@ public class DriveForwardAuto extends LinearOpMode {
         waitForStart();
 
         int trueGoal = leftMotor.getCurrentPosition() + SCORE_INCR;
-        while(leftMotor.getCurrentPosition() > trueGoal) {
+        while (leftMotor.getCurrentPosition() > trueGoal) {
             leftMotor.setPower(-1.0);
             rightMotor.setPower(-1.0);
             telemetry.update();
@@ -55,9 +55,9 @@ public class DriveForwardAuto extends LinearOpMode {
         telemetry.update();
         idle();
 
-        for(int i = 0; i < NUM_SHOTS; i++) {
+        for (int i = 0; i < NUM_SHOTS; i++) {
             int shooterGoal = shooterMotor.getCurrentPosition() + SHOOTER_INCR;
-            while(shooterMotor.getCurrentPosition() < shooterGoal) {
+            while (shooterMotor.getCurrentPosition() < shooterGoal) {
                 blocker.setPosition(BLOCKER_UP);
                 shooterMotor.setPower(SHOOTER_SPEED);
                 telemetry.update();
@@ -69,16 +69,14 @@ public class DriveForwardAuto extends LinearOpMode {
             idle();
 
             // Wait for the next ball to drop
-            if (i < NUM_SHOTS - 1) {
-                long end = System.currentTimeMillis() + 1000;
-                while (end > System.currentTimeMillis()) {
-                    idle();
-                }
+            long end = System.currentTimeMillis() + 1000;
+            while (end > System.currentTimeMillis()) {
+                idle();
             }
         }
 
         trueGoal = leftMotor.getCurrentPosition() + BALL_INCR;
-        while(leftMotor.getCurrentPosition() > trueGoal) {
+        while (leftMotor.getCurrentPosition() > trueGoal) {
             leftMotor.setPower(-1.0);
             rightMotor.setPower(-1.0);
             telemetry.update();
