@@ -155,7 +155,7 @@ public class TankDrive {
     }
 
     public void loop(Gamepad pad) {
-        if (isDisabled() || !isTeleop()) {
+        if (isDisabled() || !isTeleop() || pad == null) {
             return;
         }
 
