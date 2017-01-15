@@ -10,9 +10,9 @@ import com.qualcomm.robotcore.hardware.Servo;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", group = "Auto")
 public class DriveForwardAuto extends LinearOpMode {
 
-    private static final int SCORE_INCR = -1900;
+    private static final int SCORE_INCR = -2000;
     private static final int BALL_INCR = -1100;
-    public static final int SHOOTER_INCR = 3700;
+    public static final int SHOOTER_INCR = 3550;
     public static final double SHOOTER_SPEED = 1.0;
     public static final double BLOCKER_UP = 0.0;
     public static final double BLOCKER_DOWN = 0.98;
@@ -45,6 +45,8 @@ public class DriveForwardAuto extends LinearOpMode {
         flapper.setPosition(FLAPPER_UP);
 
         waitForStart();
+
+        rightBooper.setPosition(0.35);
 
         int trueGoal = leftMotor.getCurrentPosition() + SCORE_INCR;
         while (leftMotor.getCurrentPosition() > trueGoal) {
@@ -87,6 +89,7 @@ public class DriveForwardAuto extends LinearOpMode {
         }
         leftMotor.setPower(0);
         rightMotor.setPower(0);
+        rightBooper.setPosition(0);
         telemetry.update();
         idle();
 
