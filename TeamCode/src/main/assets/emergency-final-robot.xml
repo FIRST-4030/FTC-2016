@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<Robot type="FirstInspires-FTC">
+    <MotorController name="Motor Controller 4" serialNumber="AL00YD6H">
+        <Motor name="left-wheel-motor" port="1" />
+        <Motor name="collector-motor" port="2" />
+    </MotorController>
+    <MotorController name="Motor Controller 1" serialNumber="AL00VXFR">
+        <Motor name="shooter-motor" port="1" />
+        <Motor name="right-wheel-motor" port="2" />
+    </MotorController>
+    <ServoController name="Servo Controller 6" serialNumber="A104ORSY">
+        <Servo name="blocker" port="1" />
+        <Servo name="left-booper" port="2" />
+        <Servo name="right-booper" port="3" />
+        <Servo name="flapper" port="4" />
+    </ServoController>
+</Robot>
